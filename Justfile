@@ -4,6 +4,7 @@ format *files:
         | tr ' ' '\n' \
         | grep '\.py$' \
         | tr '\n' ' ')
+    # AI! Only run ruff if there are python files
     uvx ruff format $python_files
     uvx ruff check $python_files
     uvx ruff format $python_files
