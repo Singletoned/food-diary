@@ -7,3 +7,6 @@ format *files:
     uvx ruff format $filtered_files
     uvx ruff check $filtered_files
     uvx ruff format $filtered_files
+
+test:
+    pytest
