@@ -14,7 +14,13 @@ format *files:
     if [ -n "$pug_files" ]; then \
         npx prettier --plugin=@prettier/plugin-pug --write $pug_files; \
     fi
-    # AI! Add something here that filters for js files and formats them with prettier if there are any
+    js_files=$(echo {{files}} \
+        | tr ' ' '\n' \
+        | grep '\.js$' \
+        | tr '\n' ' ')
+    if [ -n "$js_files" ]; then \
+        npx prettier --write $js_files; \
+    fi
 
 serve:
     uvicorn src.food_diary.main:app --reload
