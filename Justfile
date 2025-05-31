@@ -1,32 +1,29 @@
+# Helper function to filter files by extension
+_filter_files files ext:
+    @echo '{{ files }}' | tr ' ' '\n' | grep '\.{{ ext }}' || true
+
+# Format Python files (specific files or all *.py)
+format-python files="**/*.py":
+    uvx ruff format {{ files }}
+    uvx ruff check {{ files }}
+    uvx ruff format {{ files }}
+
+# Format Pug files (specific files or all *.pug)
+format-pug files="**/*.pug":
+    npx prettier --plugin=@prettier/plugin-pug --write {{ files }}
+
+# Format JS files (specific files or all *.js)
+format-js files="**/*.js":
+    npx prettier --write {{ files }}
+
+# Format all files (calls individual formatters)
+format-all: format-python format-pug format-js
+
+# Format specific files or all files of each type
 format *files:
-    #!/usr/bin/env bash
-    
-    # Function to filter files by extension
-    # $1: space-separated list of all files (passed as a single string)
-    # $2: extension (e.g., "py", "pug", "js")
-    _get_files_with_ext() {
-        echo "$1" | tr ' ' '\n' | grep --color=never "\.$2$" | tr '\n' ' ' | sed 's/ $//'
-    }
-
-    # Python files
-    python_files=$(_get_files_with_ext "{{files}}" "py")
-    if [ -n "$python_files" ]; then
-        uvx ruff format $python_files
-        uvx ruff check $python_files
-        uvx ruff format $python_files
-    fi
-
-    # Pug files
-    pug_files=$(_get_files_with_ext "{{files}}" "pug")
-    if [ -n "$pug_files" ]; then
-        npx prettier --plugin=@prettier/plugin-pug --write $pug_files
-    fi
-
-    # JS files
-    js_files=$(_get_files_with_ext "{{files}}" "js")
-    if [ -n "$js_files" ]; then
-        npx prettier --write $js_files
-    fi
+    @[ -n "$(just _filter_files '{{ files }}' py)" ] && just format-python "$(just _filter_files '{{ files }}' py)" || true
+    @[ -n "$(just _filter_files '{{ files }}' pug)" ] && just format-pug "$(just _filter_files '{{ files }}' pug)" || true
+    @[ -n "$(just _filter_files '{{ files }}' js)" ] && just format-js "$(just _filter_files '{{ files }}' js)" || true
 
 serve:
     uvicorn src.food_diary.main:app --reload
