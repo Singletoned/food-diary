@@ -35,3 +35,20 @@ test = [
     "pytest>=7.0",
     "httpx>=0.23", # TestClient uses httpx
 ]
+
+[tool.ruff]
+fix = true
+unsafe-fixes = true
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["E", "F", "I"]
+unfixable = ["F841"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.ruff.lint.isort]
+known-first-party = ["food_diary"]
