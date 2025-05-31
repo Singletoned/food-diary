@@ -52,3 +52,6 @@ line-ending = "lf"
 
 [tool.ruff.lint.isort]
 known-first-party = ["food_diary"]
+
+[tool.pytest.ini_options]
+python_paths = ["src"]
