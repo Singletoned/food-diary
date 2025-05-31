@@ -1,8 +1,9 @@
 import os
+
 import pypugjs
 from starlette.applications import Starlette
 from starlette.responses import HTMLResponse
-from starlette.routing import Route, Mount
+from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
 # Determine the application directory (e.g., src/food-diary)

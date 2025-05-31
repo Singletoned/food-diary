@@ -1,8 +1,7 @@
-import pytest
-from starlette.testclient import TestClient
 from food_diary.main import (
     app,
 )  # Assuming your app instance is in src/food-diary/main.py
+from starlette.testclient import TestClient
 
 client = TestClient(app)
 
