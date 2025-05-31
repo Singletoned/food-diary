@@ -29,3 +29,9 @@ Homepage = "https://example.com" # Replace with your project's homepage if any
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "httpx>=0.23", # TestClient uses httpx
+]
