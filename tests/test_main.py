@@ -1,8 +1,11 @@
 import pytest
 from starlette.testclient import TestClient
-from food_diary.main import app # Assuming your app instance is in src/food-diary/main.py
+from food_diary.main import (
+    app,
+)  # Assuming your app instance is in src/food-diary/main.py
 
 client = TestClient(app)
+
 
 def test_homepage_loads_successfully():
     """
