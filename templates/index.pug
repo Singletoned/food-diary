@@ -7,7 +7,8 @@ html(lang="en")
     //- You can link to static CSS files here, e.g.:
     //- link(rel="stylesheet", href="/static/style.css")
     script(src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer)
-  body(x-data="foodDiaryApp()" x-init="initDB()")
+    script(src="/static/app.js" defer)
+  body(x-data="foodDiaryApp()" x-init="initApp()")
     h1 Food Diary Entry
 
     div(style="margin-bottom: 1rem;")
@@ -33,29 +34,15 @@ html(lang="en")
           note: '',
           photoBase64: null,
           photoPreview: null,
-          db: null,
 
-          initDB() {
-            const request = indexedDB.open("foodDiaryDB", 1);
-
-            request.onupgradeneeded = (event) => {
-              const db = event.target.result;
-              if (!db.objectStoreNames.contains("entries")) {
-                const store = db.createObjectStore("entries", { keyPath: "id", autoIncrement: true });
-                store.createIndex("timestamp", "timestamp", { unique: false });
-                console.log("Object store 'entries' created.");
-              }
-            };
-
-            request.onsuccess = (event) => {
-              this.db = event.target.result;
-              console.log("Database initialized successfully.");
-            };
-
-            request.onerror = (event) => {
-              console.error("Database error: ", event.target.errorCode);
-              alert("Failed to initialize database.");
-            };
+          async initApp() {
+            try {
+              await initDB(); // This calls initDB from static/app.js
+              console.log("Alpine component initialized, DB connection ready via static/app.js.");
+            } catch (error) {
+              console.error("Alpine component: Failed to initialize DB via static/app.js:", error);
+              alert("Database initialization failed. App may not function correctly.");
+            }
           },
 
           handlePhotoUpload(event) {
@@ -79,29 +66,21 @@ html(lang="en")
             }
           },
 
-          saveEntry() {
-            if (!this.db) {
-              console.error("Database not initialized.");
-              alert("Database not ready. Please try again in a moment.");
-              return;
-            }
+          async saveEntry() {
             if (!this.note && !this.photoBase64) {
               alert("Please enter a note or select a photo to save.");
               return;
             }
 
-            const transaction = this.db.transaction(["entries"], "readwrite");
-            const store = transaction.objectStore("entries");
-            const entry = {
+            const entryData = {
               timestamp: new Date().toISOString(),
-              note: this.note,
+              text: this.note,
               photo: this.photoBase64,
             };
 
-            const requestAdd = store.add(entry);
-
-            requestAdd.onsuccess = () => {
-              console.log("Entry saved successfully!");
+            try {
+              const newEntryId = await saveEntryToDB(entryData); // Calls saveEntryToDB from static/app.js
+              console.log("Alpine component: Entry saved successfully with ID:", newEntryId);
               alert("Entry saved!");
               this.note = '';
               this.photoBase64 = null;
@@ -111,18 +90,32 @@ html(lang="en")
               if (photoInput) {
                 photoInput.value = null;
               }
-            };
-
-            requestAdd.onerror = (event) => {
-              console.error("Error saving entry: ", event.target.errorCode);
+            } catch (error) {
+              console.error("Alpine component: Error saving entry via static/app.js:", error);
               alert("Error saving entry. Check console for details.");
-            };
-
-            transaction.onerror = (event) => {
-              console.error("Transaction error: ", event.target.errorCode);
-              // This might catch errors not caught by requestAdd.onerror, like quota exceeded.
-              alert("Transaction error while saving. Check console for details.");
-            };
+            }
           }
+          // Functions to use readAllEntriesFromDB or markEntryAsSyncedInDB can be added here
+          // when UI elements for those actions are implemented. For example:
+          /*
+          async loadAllEntries() {
+            try {
+              const entries = await readAllEntriesFromDB();
+              // Process entries, e.g., display them
+              console.log("Loaded entries:", entries);
+            } catch (error) {
+              console.error("Alpine: Error loading entries", error);
+            }
+          },
+          async markEntrySynced(entryId) {
+            try {
+              await markEntryAsSyncedInDB(entryId);
+              console.log(`Alpine: Marked entry ${entryId} as synced`);
+              // Update UI accordingly
+            } catch (error) {
+              console.error(`Alpine: Error marking entry ${entryId} as synced`, error);
+            }
+          }
+          */
         }
       }
