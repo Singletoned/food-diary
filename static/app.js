@@ -14,7 +14,10 @@ function initDB() {
     request.onupgradeneeded = (event) => {
       const dbInstance = event.target.result;
       if (!dbInstance.objectStoreNames.contains(STORE_NAME)) {
-        const store = dbInstance.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+        const store = dbInstance.createObjectStore(STORE_NAME, {
+          keyPath: "id",
+          autoIncrement: true,
+        });
         store.createIndex("timestamp", "timestamp", { unique: false });
         store.createIndex("synced", "synced", { unique: false });
         console.log(`Object store '${STORE_NAME}' created.`);
@@ -42,7 +45,7 @@ function saveEntryToDB(entryData) {
     }
     const transaction = db.transaction([STORE_NAME], "readwrite");
     const store = transaction.objectStore(STORE_NAME);
-    
+
     // Ensure all required fields are present
     const entry = {
       timestamp: entryData.timestamp || new Date().toISOString(),
@@ -59,7 +62,10 @@ function saveEntryToDB(entryData) {
     };
 
     requestAdd.onerror = (event) => {
-      console.error("Error saving entry to DB (static/app.js): ", event.target.errorCode);
+      console.error(
+        "Error saving entry to DB (static/app.js): ",
+        event.target.errorCode,
+      );
       reject(event.target.errorCode);
     };
   });
@@ -81,7 +87,10 @@ function readAllEntriesFromDB() {
     };
 
     requestGetAll.onerror = (event) => {
-      console.error("Error reading entries from DB (static/app.js): ", event.target.errorCode);
+      console.error(
+        "Error reading entries from DB (static/app.js): ",
+        event.target.errorCode,
+      );
       reject(event.target.errorCode);
     };
   });
@@ -107,7 +116,10 @@ function markEntryAsSyncedInDB(id) {
           resolve();
         };
         updateRequest.onerror = (event) => {
-          console.error(`Error updating entry ${id} to synced (static/app.js): `, event.target.errorCode);
+          console.error(
+            `Error updating entry ${id} to synced (static/app.js): `,
+            event.target.errorCode,
+          );
           reject(event.target.errorCode);
         };
       } else {
@@ -116,7 +128,10 @@ function markEntryAsSyncedInDB(id) {
       }
     };
     getRequest.onerror = (event) => {
-      console.error(`Error fetching entry ${id} for update (static/app.js): `, event.target.errorCode);
+      console.error(
+        `Error fetching entry ${id} for update (static/app.js): `,
+        event.target.errorCode,
+      );
       reject(event.target.errorCode);
     };
   });
