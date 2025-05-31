@@ -1,5 +1,6 @@
 format *files:
     #!/usr/bin/env bash
+    # AI! The pattern below is repeated.  Factor out a solution that removes the repetition
     python_files=$(echo {{files}} \
         | tr ' ' '\n' \
         | grep '\.py$' \
