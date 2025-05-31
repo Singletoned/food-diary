@@ -29,4 +29,7 @@ serve:
     uvicorn src.food_diary.main:app --reload
 
 test:
-    pytest
+    pytest tests/test_main.py
+
+test-e2e:
+    pytest tests/e2e

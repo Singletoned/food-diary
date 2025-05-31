@@ -28,3 +28,29 @@ To format code:
 ```bash
 just format
 ```
+
+## End-to-End (E2E) Testing with Playwright
+
+This project uses Playwright for end-to-end testing.
+
+### Setup
+
+1.  Install project test dependencies (which now include Playwright):
+    ```bash
+    uv pip install -e .[test]
+    ```
+2.  Install Playwright browsers:
+    ```bash
+    playwright install
+    ```
+
+### Running E2E Tests
+
+1.  Ensure the application server is running:
+    ```bash
+    just serve
+    ```
+2.  In a separate terminal, run the E2E tests:
+    ```bash
+    just test-e2e
+    ```
