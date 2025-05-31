@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "starlette-pug-app"
+version = "0.1.0"
+description = "A minimal Python web app using Starlette and Pug templates."
+readme = "README.md" # You might want to create this file
+requires-python = ">=3.8"
+license = {text = "MIT"} # Or choose another license
+
+dependencies = [
+    "starlette",
+    "uvicorn[standard]", # [standard] includes common extras like websockets and http tools
+    "pypugjs",
+]
+
+[project.urls]
+Homepage = "https://example.com" # Replace with your project's homepage if any
+# Issues = "https://github.com/user/project/issues" # Replace if you have an issue tracker
+
+# Optional: If you want to make your app runnable with `python -m <your_package_name>`
+# or define console scripts, you can add:
+# [project.scripts]
+# my-app = "main:app" # Assuming your Starlette app instance is `app` in `main.py`
+# This would require structuring your project as a package.
+# For now, running with `uvicorn main:app` is simpler.
