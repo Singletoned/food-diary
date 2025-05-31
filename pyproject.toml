@@ -8,8 +8,6 @@ version = "0.1.0"
 description = "A minimal Python web app using Starlette and Pug templates."
 readme = "README.md" # You might want to create this file
 requires-python = ">=3.8"
-license = {text = "MIT"} # Or choose another license
-
 dependencies = [
     "starlette",
     "uvicorn[standard]", # [standard] includes common extras like websockets and http tools
