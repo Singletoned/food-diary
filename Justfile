@@ -15,5 +15,8 @@ format *files:
         npx prettier --plugin=@prettier/plugin-pug --write $pug_files; \
     fi
 
+serve:
+    uvicorn src.food_diary.main:app --reload
+
 test:
     pytest
