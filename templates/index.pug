@@ -3,12 +3,126 @@ html(lang="en")
   head
     meta(charset="UTF-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title My Starlette Pug App
+    title Food Diary Entry
     //- You can link to static CSS files here, e.g.:
     //- link(rel="stylesheet", href="/static/style.css")
-  body
-    h1 Hello from Pug!
-    p This page is rendered from a Pug template.
+    script(src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer)
+  body(x-data="foodDiaryApp()" x-init="initDB()")
+    h1 Food Diary Entry
 
+    div(style="margin-bottom: 1rem;")
+      label(for="note" style="display: block; margin-bottom: 0.25rem;") Note:
+      textarea#note(x-model="note" rows="4" style="width: 100%; max-width: 500px; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;" placeholder="Enter your food notes...")
+
+    div(style="margin-bottom: 1rem;")
+      label(for="photo" style="display: block; margin-bottom: 0.25rem;") Photo:
+      input#photo(type="file" accept="image/*" @change="handlePhotoUpload($event)" style="padding: 0.5rem;")
+
+    div(x-show="photoPreview" style="margin-bottom: 1rem;")
+      h3 Photo Preview:
+      img(:src="photoPreview" alt="Photo preview" style="max-width: 300px; max-height: 300px; border: 1px solid #eee;")
+
+    button(@click="saveEntry" :disabled="!note && !photoBase64" style="padding: 0.75rem 1.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;") Save Entry
+    
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
+
+    script.
+      function foodDiaryApp() {
+        return {
+          note: '',
+          photoBase64: null,
+          photoPreview: null,
+          db: null,
+
+          initDB() {
+            const request = indexedDB.open("foodDiaryDB", 1);
+
+            request.onupgradeneeded = (event) => {
+              const db = event.target.result;
+              if (!db.objectStoreNames.contains("entries")) {
+                const store = db.createObjectStore("entries", { keyPath: "id", autoIncrement: true });
+                store.createIndex("timestamp", "timestamp", { unique: false });
+                console.log("Object store 'entries' created.");
+              }
+            };
+
+            request.onsuccess = (event) => {
+              this.db = event.target.result;
+              console.log("Database initialized successfully.");
+            };
+
+            request.onerror = (event) => {
+              console.error("Database error: ", event.target.errorCode);
+              alert("Failed to initialize database.");
+            };
+          },
+
+          handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                this.photoBase64 = e.target.result;
+                this.photoPreview = e.target.result; 
+              };
+              reader.onerror = (e) => {
+                console.error("FileReader error:", e);
+                alert("Error reading file.");
+                this.photoBase64 = null;
+                this.photoPreview = null;
+              };
+              reader.readAsDataURL(file);
+            } else {
+              this.photoBase64 = null;
+              this.photoPreview = null;
+            }
+          },
+
+          saveEntry() {
+            if (!this.db) {
+              console.error("Database not initialized.");
+              alert("Database not ready. Please try again in a moment.");
+              return;
+            }
+            if (!this.note && !this.photoBase64) {
+              alert("Please enter a note or select a photo to save.");
+              return;
+            }
+
+            const transaction = this.db.transaction(["entries"], "readwrite");
+            const store = transaction.objectStore("entries");
+            const entry = {
+              timestamp: new Date().toISOString(),
+              note: this.note,
+              photo: this.photoBase64,
+            };
+
+            const requestAdd = store.add(entry);
+
+            requestAdd.onsuccess = () => {
+              console.log("Entry saved successfully!");
+              alert("Entry saved!");
+              this.note = '';
+              this.photoBase64 = null;
+              this.photoPreview = null;
+              // Reset file input
+              const photoInput = document.getElementById('photo');
+              if (photoInput) {
+                photoInput.value = null;
+              }
+            };
+
+            requestAdd.onerror = (event) => {
+              console.error("Error saving entry: ", event.target.errorCode);
+              alert("Error saving entry. Check console for details.");
+            };
+
+            transaction.onerror = (event) => {
+              console.error("Transaction error: ", event.target.errorCode);
+              // This might catch errors not caught by requestAdd.onerror, like quota exceeded.
+              alert("Transaction error while saving. Check console for details.");
+            };
+          }
+        }
+      }
