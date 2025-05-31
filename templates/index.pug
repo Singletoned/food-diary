@@ -6,32 +6,53 @@ html(lang="en")
     title Food Diary Entry
     //- You can link to static CSS files here, e.g.:
     //- link(rel="stylesheet", href="/static/style.css")
-    script(src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer)
-    script(src="/static/app.js" defer)
-  body(x-data="foodDiaryApp()" x-init="initApp()")
+    script(
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js",
+      defer
+    )
+    script(src="/static/app.js", defer)
+  body(x-data="foodDiaryApp()", x-init="initApp()")
     h1 Food Diary Entry
 
-    div(style="margin-bottom: 1rem;")
-      label(for="note" style="display: block; margin-bottom: 0.25rem;") Note:
-      textarea#note(x-model="note" rows="4" style="width: 100%; max-width: 500px; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;" placeholder="Enter your food notes...")
+    div(style="margin-bottom: 1rem")
+      label(for="note", style="display: block; margin-bottom: 0.25rem") Note:
+      textarea#note(
+        x-model="note",
+        rows="4",
+        style="width: 100%; max-width: 500px; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px",
+        placeholder="Enter your food notes..."
+      )
 
-    div(style="margin-bottom: 1rem;")
-      label(for="photo" style="display: block; margin-bottom: 0.25rem;") Photo:
-      input#photo(type="file" accept="image/*" @change="handlePhotoUpload($event)" style="padding: 0.5rem;")
+    div(style="margin-bottom: 1rem")
+      label(for="photo", style="display: block; margin-bottom: 0.25rem") Photo:
+      input#photo(
+        type="file",
+        accept="image/*",
+        @change="handlePhotoUpload($event)",
+        style="padding: 0.5rem"
+      )
 
-    div(x-show="photoPreview" style="margin-bottom: 1rem;")
+    div(x-show="photoPreview", style="margin-bottom: 1rem")
       h3 Photo Preview:
-      img(:src="photoPreview" alt="Photo preview" style="max-width: 300px; max-height: 300px; border: 1px solid #eee;")
+      img(
+        :src="photoPreview",
+        alt="Photo preview",
+        style="max-width: 300px; max-height: 300px; border: 1px solid #eee"
+      )
 
-    button(@click="saveEntry" :disabled="!note && !photoBase64" style="padding: 0.75rem 1.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;") Save Entry
-    
+    button(
+      @click="saveEntry",
+      :disabled="!note && !photoBase64",
+      style="padding: 0.75rem 1.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer"
+    ) Save Entry
+
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
 
     script.
       function foodDiaryApp() {
         return {
-          note: '',
+          note: "",
           photoBase64: null,
           photoPreview: null,
 
@@ -51,7 +72,7 @@ html(lang="en")
               const reader = new FileReader();
               reader.onload = (e) => {
                 this.photoBase64 = e.target.result;
-                this.photoPreview = e.target.result; 
+                this.photoPreview = e.target.result;
               };
               reader.onerror = (e) => {
                 console.error("FileReader error:", e);
@@ -82,11 +103,11 @@ html(lang="en")
               const newEntryId = await saveEntryToDB(entryData); // Calls saveEntryToDB from static/app.js
               console.log("Alpine component: Entry saved successfully with ID:", newEntryId);
               alert("Entry saved!");
-              this.note = '';
+              this.note = "";
               this.photoBase64 = null;
               this.photoPreview = null;
               // Reset file input
-              const photoInput = document.getElementById('photo');
+              const photoInput = document.getElementById("photo");
               if (photoInput) {
                 photoInput.value = null;
               }
@@ -94,7 +115,7 @@ html(lang="en")
               console.error("Alpine component: Error saving entry via static/app.js:", error);
               alert("Error saving entry. Check console for details.");
             }
-          }
+          },
           // Functions to use readAllEntriesFromDB or markEntryAsSyncedInDB can be added here
           // when UI elements for those actions are implemented. For example:
           /*
@@ -117,5 +138,5 @@ html(lang="en")
             }
           }
           */
-        }
+        };
       }
