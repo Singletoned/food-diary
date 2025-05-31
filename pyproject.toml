@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "starlette-pug-app"
+name = "food-diary"
 version = "0.1.0"
 description = "A minimal Python web app using Starlette and Pug templates."
 readme = "README.md" # You might want to create this file
@@ -26,3 +26,6 @@ Homepage = "https://example.com" # Replace with your project's homepage if any
 # my-app = "main:app" # Assuming your Starlette app instance is `app` in `main.py`
 # This would require structuring your project as a package.
 # For now, running with `uvicorn main:app` is simpler.
+
+[tool.setuptools.packages.find]
+where = ["src"]
