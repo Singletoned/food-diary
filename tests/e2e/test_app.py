@@ -1,10 +1,12 @@
 import base64
-import pytest
+
 from playwright.sync_api import Page, expect
 
 # A tiny 1x1 transparent PNG as a base64 string
 # This avoids needing an actual file on disk for the test
-TINY_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+TINY_PNG_BASE64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+)
 TINY_PNG_BYTES = base64.b64decode(TINY_PNG_BASE64)
 
 # Assuming the app runs on port 8000 by default with `just serve`
@@ -96,7 +98,7 @@ def test_save_food_entry(page: Page):
 
     assert entries is not None, "Failed to retrieve entries from IndexedDB"
     assert len(entries) > 0, "No entries found in IndexedDB after saving"
-    
+
     last_entry = entries[-1]
     assert last_entry["text"] == "Test note from Playwright"
     assert last_entry["photo"] is not None
