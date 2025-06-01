@@ -4,6 +4,7 @@ from playwright.sync_api import sync_playwright
 def check_homepage_has_title(base_url="http://app:8000"):
     """Check that the homepage loads and contains the expected title"""
     with sync_playwright() as playwright:
+        # AI! Use a different browser than Chromium
         browser = playwright.chromium.launch()
         page = browser.new_page()
 
