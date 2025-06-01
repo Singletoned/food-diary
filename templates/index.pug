@@ -4,8 +4,7 @@ html(lang="en")
     meta(charset="UTF-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
     title Food Diary Entry
-    //- You can link to static CSS files here, e.g.:
-    //- link(rel="stylesheet", href="/static/style.css")
+    link(rel="stylesheet", href="/static/styles.css")
     script(
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js",
       defer
@@ -14,37 +13,38 @@ html(lang="en")
   body(x-data="foodDiaryApp()", x-init="initApp()")
     h1 Food Diary Entry
 
-    div(style="margin-bottom: 1rem")
-      label(for="note", style="display: block; margin-bottom: 0.25rem") Note:
-      textarea#note(
-        x-model="note",
-        rows="4",
-        style="width: 100%; max-width: 500px; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px",
-        placeholder="Enter your food notes..."
-      )
+    div(class="food-diary-form")
+      div(class="form-group")
+        label(for="note", class="form-label") Note:
+        textarea#note(
+          x-model="note",
+          rows="4",
+          class="form-textarea",
+          placeholder="Enter your food notes..."
+        )
 
-    div(style="margin-bottom: 1rem")
-      label(for="photo", style="display: block; margin-bottom: 0.25rem") Photo:
-      input#photo(
-        type="file",
-        accept="image/*",
-        @change="handlePhotoUpload($event)",
-        style="padding: 0.5rem"
-      )
+      div(class="form-group")
+        label(for="photo", class="form-label") Photo:
+        input#photo(
+          type="file",
+          accept="image/*",
+          @change="handlePhotoUpload($event)",
+          class="form-file-input"
+        )
 
-    div(x-show="photoPreview", style="margin-bottom: 1rem")
-      h3 Photo Preview:
-      img(
-        :src="photoPreview",
-        alt="Photo preview",
-        style="max-width: 300px; max-height: 300px; border: 1px solid #eee"
-      )
+      div(x-show="photoPreview", class="form-group")
+        h3 Photo Preview:
+        img(
+          :src="photoPreview",
+          alt="Photo preview",
+          class="photo-preview"
+        )
 
-    button(
-      @click="saveEntry",
-      :disabled="!note && !photoBase64",
-      style="padding: 0.75rem 1.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer"
-    ) Save Entry
+      button(
+        @click="saveEntry",
+        :disabled="!note && !photoBase64",
+        class="save-button"
+      ) Save Entry
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
