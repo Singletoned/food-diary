@@ -6,8 +6,8 @@ def check_homepage_has_title(base_url="http://app:8000"):
     with sync_playwright() as playwright:
         browser = playwright.firefox.launch(
             firefox_user_prefs={
-                'network.http.http2.enabled': False,
-                'layers.acceleration.disabled': True
+                "network.http.http2.enabled": False,
+                "layers.acceleration.disabled": True,
             }
         )
         page = browser.new_page()
