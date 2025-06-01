@@ -8,7 +8,7 @@ To set up the development environment:
 
 ```bash
 # Install project dependencies (including dev dependencies)
-uv pip install -e .[test]
+uv pip install -e '.[test]'
 ```
 
 To run the application:
@@ -37,7 +37,7 @@ This project uses Playwright for end-to-end testing.
 
 1.  Install project test dependencies (which now include Playwright):
     ```bash
-    uv pip install -e .[test]
+    uv pip install -e '.[test]'
     ```
 2.  Install Playwright browsers:
     ```bash

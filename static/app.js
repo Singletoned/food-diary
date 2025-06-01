@@ -31,8 +31,11 @@ function initDB() {
     };
 
     request.onerror = (event) => {
-      console.error("Database error (static/app.js): ", event.target.errorCode);
-      reject(event.target.errorCode);
+      console.error(
+        "Database error (static/app.js): ",
+        event.target.error || event.target.errorCode,
+      );
+      reject(event.target.error || event.target.errorCode);
     };
   });
 }
