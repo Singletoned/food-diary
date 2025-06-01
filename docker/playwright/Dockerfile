@@ -14,6 +14,12 @@ ENV PATH="/venv/bin:$PATH"
 WORKDIR /app
 
 RUN uv venv
+
+RUN --mount=type=cache,target=/root/.cache/uv uv pip install playwright
+
+# Install Playwright browsers and their OS dependencies
+RUN uv run playwright install --with-deps
+
 # Copy files required for dependency installation first to leverage Docker cache
 COPY pyproject.toml README.md ./
 
@@ -21,10 +27,7 @@ COPY pyproject.toml README.md ./
 # The -e flag installs the project in editable mode.
 # Quotes around '.[test]' ensure correct parsing by the shell.
 # Using --system to install into the global site-packages, common in Docker.
-RUN uv pip install --system -e '.[test]'
-
-# Install Playwright browsers and their OS dependencies
-RUN playwright install --with-deps
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-editable --no-install-project --no-install-workspace --extra test
 
 # Copy the application source code and tests
 # This is done after pip install to leverage Docker cache more effectively
