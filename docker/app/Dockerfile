@@ -3,6 +3,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV PYTHONUNBUFFERED=1
 
+# Install curl for healthchecks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Set environment for uv/virtualenv
 ENV UV_PROJECT_ENVIRONMENT=/venv/
 ENV PATH="/venv/bin:$PATH"
