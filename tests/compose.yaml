@@ -16,10 +16,10 @@ services:
     command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
-      interval: 5s
-      timeout: 3s
-      retries: 24 # Approx 120 seconds
-      start_period: 30s # Give uvicorn more time to initialize
+      interval: 1s
+      timeout: 1s
+      retries: 5
+      start_period: 1s
     networks:
       - test_network
 

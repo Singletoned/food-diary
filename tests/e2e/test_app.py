@@ -42,8 +42,6 @@ class FoodDiaryE2ETests(unittest.TestCase):
         """
         Tests the core functionality:
         """
-        # Small delay to ensure app is ready
-        self.page.wait_for_timeout(1000)
         - Navigates to the page.
         - Enters a note.
         - Uploads a photo.
