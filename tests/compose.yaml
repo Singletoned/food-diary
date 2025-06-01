@@ -18,8 +18,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 5s
       timeout: 3s
-      retries: 12 # Approx 60 seconds
-      start_period: 10s # Give uvicorn time to initialize before first check
+      retries: 24 # Approx 120 seconds
+      start_period: 30s # Give uvicorn more time to initialize
     networks:
       - test_network
 

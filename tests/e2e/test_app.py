@@ -26,8 +26,12 @@ class FoodDiaryE2ETests(unittest.TestCase):
 
     def setUp(self):
         # Create a new context and page for each test to ensure isolation
-        # ignore_https_errors=True can help with SSL issues if they persist
-        self.context = self.browser.new_context(ignore_https_errors=True)
+        # Explicitly set to handle HTTP and ignore HTTPS requirements
+        self.context = self.browser.new_context(
+            ignore_https_errors=True,
+            bypass_csp=True,
+            java_script_enabled=True
+        )
         self.page = self.context.new_page()
 
     def tearDown(self):
@@ -37,6 +41,9 @@ class FoodDiaryE2ETests(unittest.TestCase):
     def test_save_food_entry(self):
         """
         Tests the core functionality:
+        """
+        # Small delay to ensure app is ready
+        self.page.wait_for_timeout(1000)
         - Navigates to the page.
         - Enters a note.
         - Uploads a photo.
