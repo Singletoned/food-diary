@@ -45,4 +45,4 @@ COPY tests/ ./tests/
 #
 # The BASE_URL in tests/e2e/test_app.py is "http://localhost:8000".
 # Using --network="host" makes "localhost" inside the container refer to the host.
-CMD ["nose2", "tests.e2e.test_app"]
+CMD ["python", "tests/e2e/test_app.py"]
