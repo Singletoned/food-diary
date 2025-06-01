@@ -13,7 +13,7 @@ services:
       - ../pyproject.toml:/app/pyproject.toml
     # Command to run the application, ensuring it listens on all interfaces
     # and uses the standard port 8000.
-    command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src --reload-dir /app/templates
+    command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 5s
