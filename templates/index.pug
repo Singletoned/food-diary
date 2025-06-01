@@ -13,38 +13,28 @@ html(lang="en")
   body(x-data="foodDiaryApp()", x-init="initApp()")
     h1 Food Diary Entry
 
-    div(class="food-diary-form")
-      div(class="form-group")
-        label(for="note", class="form-label") Note:
-        textarea#note(
+    .food-diary-form
+      .form-group
+        label.form-label(for="note") Note:
+        textarea#note.form-textarea(
           x-model="note",
           rows="4",
-          class="form-textarea",
           placeholder="Enter your food notes..."
         )
 
-      div(class="form-group")
-        label(for="photo", class="form-label") Photo:
-        input#photo(
+      .form-group
+        label.form-label(for="photo") Photo:
+        input#photo.form-file-input(
           type="file",
           accept="image/*",
-          @change="handlePhotoUpload($event)",
-          class="form-file-input"
+          @change="handlePhotoUpload($event)"
         )
 
-      div(x-show="photoPreview", class="form-group")
+      .form-group(x-show="photoPreview")
         h3 Photo Preview:
-        img(
-          :src="photoPreview",
-          alt="Photo preview",
-          class="photo-preview"
-        )
+        img.photo-preview(:src="photoPreview", alt="Photo preview")
 
-      button(
-        @click="saveEntry",
-        :disabled="!note && !photoBase64",
-        class="save-button"
-      ) Save Entry
+      button.save-button(@click="saveEntry", :disabled="!note && !photoBase64") Save Entry
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
