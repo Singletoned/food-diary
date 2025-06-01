@@ -5,10 +5,7 @@ def check_homepage_has_title(base_url="http://app:8000"):
     """Check that the homepage loads and contains the expected title"""
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
-            args=[
-                '--disable-http2',
-                '--disable-features=VizDisplayCompositor'
-            ]
+            args=["--disable-http2", "--disable-features=VizDisplayCompositor"]
         )
         page = browser.new_page()
 
