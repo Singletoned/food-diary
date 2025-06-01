@@ -8,10 +8,10 @@ import time
 
 def test_homepage_title():
     # Connect to the standalone Selenium container
-    # AI! I get the error TypeError: WebDriver.__init__() got an unexpected keyword argument 'desired_capabilities'
+    options = webdriver.ChromeOptions()
     driver = webdriver.Remote(
         command_executor='http://selenium:4444/wd/hub',
-        desired_capabilities=DesiredCapabilities.CHROME
+        options=options
     )
     
     try:
