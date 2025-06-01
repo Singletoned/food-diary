@@ -8,9 +8,7 @@ class TestApp:
         self.playwright = playwright
         self.browser = self.playwright.chromium.launch()
         self.context = self.browser.new_context(
-            ignore_https_errors=True,
-            bypass_csp=True,
-            java_script_enabled=True
+            ignore_https_errors=True, bypass_csp=True, java_script_enabled=True
         )
         self.page = self.context.new_page()
         yield
