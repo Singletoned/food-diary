@@ -30,14 +30,11 @@ serve:
 
 test:
     pytest tests/test_main.py
-    
-test-e2e:
-    nose2 tests.e2e.test_app # Specify module path for nose2
-    
+
 test-e2e-compose:
     @echo "Running E2E tests with Docker Compose..."
     @docker compose -f ./tests/compose.yaml build
-    @docker compose -f ./tests/compose.yaml up \
+    docker compose -f ./tests/compose.yaml up \
         --abort-on-container-exit \
         --exit-code-from playwright-tests; \
     EXIT_CODE=$$?; \
