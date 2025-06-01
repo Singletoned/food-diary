@@ -2,10 +2,18 @@
 # For available tags, see: https://mcr.microsoft.com/v2/playwright/python/tags/list
 # It's good practice to pin to a specific version.
 FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV PYTHONUNBUFFERED=1
+
+# Set environment for uv/virtualenv
+ENV UV_PROJECT_ENVIRONMENT=/venv/
+ENV PATH="/venv/bin:$PATH"
 
 # Set the working directory in the container
 WORKDIR /app
 
+RUN uv venv
 # Copy files required for dependency installation first to leverage Docker cache
 COPY pyproject.toml README.md ./
 
