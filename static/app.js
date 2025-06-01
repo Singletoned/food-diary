@@ -3,9 +3,10 @@ const DB_VERSION = 1;
 const STORE_NAME = "entries";
 let db;
 
-function initDB() {
-  return new Promise((resolve, reject) => {
-    if (db) {
+window.foodDiaryUtils = {
+  initDB: function () {
+    return new Promise((resolve, reject) => {
+      if (db) {
       resolve(db);
       return;
     }
@@ -36,13 +37,13 @@ function initDB() {
         event.target.error || event.target.errorCode,
       );
       reject(event.target.error || event.target.errorCode);
-    };
-  });
-}
+      };
+    });
+  },
 
-function saveEntryToDB(entryData) {
-  return new Promise((resolve, reject) => {
-    if (!db) {
+  saveEntryToDB: function (entryData) {
+    return new Promise((resolve, reject) => {
+      if (!db) {
       console.error("Database not initialized. Call initDB first.");
       return reject("Database not initialized.");
     }
@@ -70,13 +71,13 @@ function saveEntryToDB(entryData) {
         event.target.errorCode,
       );
       reject(event.target.errorCode);
-    };
-  });
-}
+      };
+    });
+  },
 
-function readAllEntriesFromDB() {
-  return new Promise((resolve, reject) => {
-    if (!db) {
+  readAllEntriesFromDB: function () {
+    return new Promise((resolve, reject) => {
+      if (!db) {
       console.error("Database not initialized. Call initDB first.");
       return reject("Database not initialized.");
     }
@@ -95,13 +96,13 @@ function readAllEntriesFromDB() {
         event.target.errorCode,
       );
       reject(event.target.errorCode);
-    };
-  });
-}
+      };
+    });
+  },
 
-function markEntryAsSyncedInDB(id) {
-  return new Promise((resolve, reject) => {
-    if (!db) {
+  markEntryAsSyncedInDB: function (id) {
+    return new Promise((resolve, reject) => {
+      if (!db) {
       console.error("Database not initialized. Call initDB first.");
       return reject("Database not initialized.");
     }
@@ -138,4 +139,5 @@ function markEntryAsSyncedInDB(id) {
       reject(event.target.errorCode);
     };
   });
-}
+  },
+};
