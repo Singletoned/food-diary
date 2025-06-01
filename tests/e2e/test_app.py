@@ -22,5 +22,6 @@ def check_homepage_has_title(base_url="http://app:8000"):
 
         return True
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     check_homepage_has_title()
