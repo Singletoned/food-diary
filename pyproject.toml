@@ -31,12 +31,12 @@ packages = ["food_diary"]
 
 [project.optional-dependencies]
 test = [
-    "pytest",
+    "pytest", # Keep for unit tests with test_main.py
     "httpx", # TestClient uses httpx
     "playwright",
-    "pytest-playwright",
+    "nose2", # Add nose2 for E2E tests
 ]
-
+    
 [tool.ruff]
 fix = true
 unsafe-fixes = true

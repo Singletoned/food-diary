@@ -30,10 +30,10 @@ serve:
 
 test:
     pytest tests/test_main.py
-
+    
 test-e2e:
-    pytest tests/e2e
-
+    nose2 tests.e2e.test_app # Specify module path for nose2
+    
 test-e2e-compose:
     @echo "Running E2E tests with Docker Compose..."
     @docker compose -f ./tests/compose.yaml build

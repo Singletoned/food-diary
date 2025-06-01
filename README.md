@@ -54,6 +54,7 @@ This project uses Playwright for end-to-end testing.
     ```bash
     just test-e2e
     ```
+    (This now uses `nose2` to run tests from `tests/e2e/`)
     
 ### Running E2E Tests with Docker Compose
     
@@ -67,7 +68,7 @@ Alternatively, you can run the application and the E2E tests together in a contr
     This command will:
     - Build the Docker images for the app and the Playwright tests if they don't exist or if their Dockerfiles have changed.
     - Start the application service.
-    - Run the Playwright tests against the application service.
+    - Run the Playwright tests (using `nose2`) against the application service.
     - Show test output in your terminal.
     - Stop and remove the containers after tests complete.
     The exit code will reflect the test suite's success or failure.
