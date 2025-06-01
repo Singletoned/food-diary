@@ -1,29 +1,76 @@
-from playwright.sync_api import sync_playwright
+# test_app.py
+from selenium import webdriver
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+import time
 
-
-def check_homepage_has_title(base_url="http://app:8000"):
-    """Check that the homepage loads and contains the expected title"""
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(
-            args=["--disable-http2", "--disable-features=VizDisplayCompositor"]
+def test_homepage_title():
+    # Connect to the standalone Selenium container
+    # AI! I get the error TypeError: WebDriver.__init__() got an unexpected keyword argument 'desired_capabilities'
+    driver = webdriver.Remote(
+        command_executor='http://selenium:4444/wd/hub',
+        desired_capabilities=DesiredCapabilities.CHROME
+    )
+    
+    try:
+        # Navigate to your app
+        driver.get('http://your-app:8000')
+        
+        # Wait for page to load (optional but recommended)
+        WebDriverWait(driver, 10).until(
+            lambda driver: driver.execute_script("return document.readyState") == "complete"
         )
-        page = browser.new_page()
+        
+        # Get the page title
+        page_title = driver.title
+        print(f"Page title: {page_title}")
+        
+        # Check if expected title is present
+        expected_title = "My App Title"
+        assert expected_title in page_title, f"Expected '{expected_title}' in title, but got '{page_title}'"
+        
+        # Alternative: Check for title element content
+        # If your title is in an <h1> or other element instead of <title>
+        # title_element = driver.find_element(By.TAG_NAME, "h1")
+        # assert expected_title in title_element.text
+        
+        print("Title test passed!")
+        
+    except Exception as e:
+        print(f"Test failed: {e}")
+        # Take screenshot for debugging
+        driver.save_screenshot("/tmp/error_screenshot.png")
+        raise
+    
+    finally:
+        # Always close the browser
+        driver.quit()
 
-        # Load the page
-        page.goto(base_url)
-
-        # Wait for title to be visible
-        title_element = page.get_by_role("heading", name="Food Diary Entry")
-        if not title_element.is_visible():
-            raise AssertionError("Expected title 'Food Diary Entry' not found on page")
-
-        # Verify basic page structure
-        form = page.locator(".food-diary-form")
-        if not form.is_visible():
-            raise AssertionError("Food diary form not found")
-
-        return True
-
+def test_with_javascript_wait():
+    """Example showing how to wait for JavaScript-generated content"""
+    driver = webdriver.Remote(
+        command_executor='http://selenium:4444/wd/hub',
+        desired_capabilities=DesiredCapabilities.CHROME
+    )
+    
+    try:
+        driver.get('http://your-app:8000')
+        
+        # Wait for a specific element that JavaScript creates
+        wait = WebDriverWait(driver, 10)
+        element = wait.until(
+            EC.presence_of_element_located((By.ID, "dynamic-content"))
+        )
+        
+        # Now check the title
+        assert "Expected Title" in driver.title
+        print("JavaScript content loaded and title verified!")
+        
+    finally:
+        driver.quit()
 
 if __name__ == "__main__":
-    check_homepage_has_title()
+    test_homepage_title()
+    test_with_javascript_wait()
