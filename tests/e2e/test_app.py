@@ -8,11 +8,11 @@ TINY_PNG_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 )
 TINY_PNG_BYTES = base64.b64decode(TINY_PNG_BASE64)
-
-# Assuming the app runs on port 8000 by default with `just serve`
-BASE_URL = "http://localhost:8000"
-
-
+    
+# App service name in Docker Compose network is 'app', port 8000
+BASE_URL = "http://app:8000"
+    
+    
 def test_save_food_entry(page: Page):
     """
     Tests the core functionality:

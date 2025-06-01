@@ -1,0 +1,42 @@
+    version: "3.8"
+    
+    services:
+      app:
+        build:
+          context: .. # Project root directory
+          dockerfile: ./docker/app/Dockerfile
+        ports:
+          - "8000:8000" # Expose app port to host for potential manual inspection
+        volumes:
+          # Mount source code for live reload
+          - ../src:/app/src
+          - ../static:/app/static
+          - ../templates:/app/templates
+          - ../pyproject.toml:/app/pyproject.toml
+        # Command to run the application, ensuring it listens on all interfaces
+        # and uses the standard port 8000.
+        command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src --reload-dir /app/templates
+        networks:
+          - test_network
+    
+      playwright-tests:
+        build:
+          context: .. # Project root directory
+          dockerfile: ./docker/playwright/Dockerfile
+        depends_on:
+          app:
+            condition: service_started # Wait for app to be started
+        environment:
+          # BASE_URL is set in tests/e2e/test_app.py to http://app:8000
+          CI: "true" # Often useful for Playwright tests
+        volumes:
+          # Mount test reports or screenshots if needed
+          # Example: - ../playwright-report:/app/playwright-report
+          pass
+        networks:
+          - test_network
+        # The CMD in docker/playwright/Dockerfile is ["pytest", "tests/e2e"]
+    
+    networks:
+      test_network:
+        driver: bridge

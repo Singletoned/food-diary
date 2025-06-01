@@ -30,6 +30,17 @@ serve:
 
 test:
     pytest tests/test_main.py
-
+    
 test-e2e:
     pytest tests/e2e
+    
+test-e2e-compose:
+    @echo "Running E2E tests with Docker Compose..."
+    @docker compose -f ./tests/compose.yaml up \
+        --build \
+        --abort-on-container-exit \
+        --exit-code-from playwright-tests; \
+    EXIT_CODE=$$?; \
+    echo "Cleaning up Docker Compose services (exit code: $$EXIT_CODE)..."; \
+    docker compose -f ./tests/compose.yaml down -v --remove-orphans; \
+    exit $$EXIT_CODE
