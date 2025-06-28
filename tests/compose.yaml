@@ -13,7 +13,7 @@ services:
       - ../pyproject.toml:/app/pyproject.toml
     # Command to run the application, ensuring it listens on all interfaces
     # and uses the standard port 8000.
-    command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000 --log-level trace --access-log
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 1s
@@ -23,19 +23,31 @@ services:
     networks:
       - test_network
 
-  playwright-tests:
-    build:
-      context: .. # Project root directory
-      dockerfile: ./docker/playwright/Dockerfile
-    depends_on:
-      app:
-        condition: service_healthy # Wait for app to be healthy
-    environment:
-      # BASE_URL is set in tests/e2e/test_app.py to http://app:8000
-      CI: "true" # Often useful for Playwright tests
+  # Standalone Selenium with Chrome
+  selenium:
+    image: selenium/standalone-chrome:4.15.0
+    container_name: selenium-chrome
+    shm_size: 2gb
+    ports:
+      - "4444:4444"
+      - "7900:7900" # VNC port for debugging (optional)
     networks:
       - test_network
-    # The CMD in docker/playwright/Dockerfile is ["pytest", "tests/e2e"]
+    # Optional: Enable VNC for visual debugging
+    # Visit http://localhost:7900 (password: secret) to see browser
+
+  tests:
+    build:
+      context: ..
+      dockerfile: ./docker/tests/Dockerfile
+    depends_on:
+      selenium:
+        condition: service_started
+      app:
+        condition: service_healthy
+    networks:
+      - test_network
+    command: ["python", "tests/e2e/test_app.py"]
 
 networks:
   test_network:

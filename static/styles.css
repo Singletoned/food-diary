@@ -1,56 +1,201 @@
 body {
-    font-family: sans-serif;
-    margin: 1rem;
-    padding: 0;
+  font-family: sans-serif;
+  margin: 1rem;
+  padding: 0;
 }
 
 h1 {
-    margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .food-diary-form {
-    max-width: 600px;
-    margin: 0 auto;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .form-group {
-    margin-bottom: 1rem;
+  margin-bottom: 1rem;
 }
 
 .form-label {
-    display: block;
-    margin-bottom: 0.25rem;
+  display: block;
+  margin-bottom: 0.25rem;
 }
 
 .form-textarea {
-    width: 100%;
-    max-width: 500px;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+  width: 100%;
+  max-width: 500px;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 .form-file-input {
-    padding: 0.5rem;
+  padding: 0.5rem;
 }
 
 .photo-preview {
-    max-width: 300px;
-    max-height: 300px;
-    border: 1px solid #eee;
-    margin-top: 0.5rem;
+  max-width: 300px;
+  max-height: 300px;
+  border: 1px solid #eee;
+  margin-top: 0.5rem;
 }
 
 .save-button {
-    padding: 0.75rem 1.5rem;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+  padding: 0.75rem 1.5rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .save-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Header and navigation */
+header {
+  margin-bottom: 2rem;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sync-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sync-button {
+  padding: 0.5rem 1rem;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.sync-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.online-status {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.online-status.offline {
+  color: #dc3545;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.nav-tab {
+  padding: 0.5rem 1rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.nav-tab.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.nav-tab:hover:not(.active) {
+  background-color: #e9ecef;
+}
+
+/* View containers */
+.view-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* History view */
+.history-container {
+  margin-top: 1rem;
+}
+
+.entry {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: #fafafa;
+}
+
+.entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+}
+
+.entry-timestamp {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.delete-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-button:hover {
+  background-color: #c82333;
+}
+
+.entry-content {
+  margin-top: 0.5rem;
+}
+
+.entry-text {
+  margin: 0 0 0.5rem 0;
+  line-height: 1.4;
+}
+
+.entry-photo img {
+  max-width: 300px;
+  max-height: 300px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.empty-history {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
 }

@@ -55,11 +55,11 @@ This project uses Playwright for end-to-end testing.
     just test-e2e
     ```
     (This now uses `nose2` to run tests from `tests/e2e/`)
-    
+
 ### Running E2E Tests with Docker Compose
-    
+
 Alternatively, you can run the application and the E2E tests together in a controlled environment using Docker Compose. This is often preferred for CI or for ensuring a consistent test environment.
-    
+
 1.  Ensure Docker and Docker Compose are installed.
 2.  Run the tests using the provided Justfile recipe:
     ```bash
@@ -71,4 +71,4 @@ Alternatively, you can run the application and the E2E tests together in a contr
     - Run the Playwright tests (using `nose2`) against the application service.
     - Show test output in your terminal.
     - Stop and remove the containers after tests complete.
-    The exit code will reflect the test suite's success or failure.
+      The exit code will reflect the test suite's success or failure.

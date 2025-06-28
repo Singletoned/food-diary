@@ -11,9 +11,24 @@ html(lang="en")
     )
     script(src="/static/app.js")
   body(x-data="foodDiaryApp()", x-init="initApp()")
-    h1 Food Diary Entry
+    header
+      .header-top
+        h1 Food Diary
+        .sync-controls
+          button.sync-button(@click="syncWithServer", :disabled="syncStatus === 'syncing'")
+            span(x-show="syncStatus === 'idle'") 🔄 Sync
+            span(x-show="syncStatus === 'syncing'") ⏳ Syncing...
+            span(x-show="syncStatus === 'error'") ❌ Sync Error
+          .online-status(:class="{ offline: !navigator.onLine }")
+            span(x-show="navigator.onLine") 🟢 Online
+            span(x-show="!navigator.onLine") 🔴 Offline
+      nav.nav-tabs
+        button.nav-tab(:class="{ active: currentView === 'entry' }", @click="currentView = 'entry'") New Entry
+        button.nav-tab(:class="{ active: currentView === 'history' }", @click="currentView = 'history'") History
 
-    .food-diary-form
+    .view-container(x-show="currentView === 'entry'")
+      h2 Add New Entry
+      .food-diary-form
       .form-group
         label.form-label(for="note") Note:
         textarea#note.form-textarea(
@@ -34,7 +49,21 @@ html(lang="en")
         h3 Photo Preview:
         img.photo-preview(:src="photoPreview", alt="Photo preview")
 
-      button.save-button(@click="saveEntry", :disabled="!note && !photoBase64") Save Entry
+        button.save-button(@click="saveEntry", :disabled="!note && !photoBase64") Save Entry
+
+    .view-container(x-show="currentView === 'history'")
+      h2 Entry History
+      .history-container
+        .entry(x-for="entry in entries", :key="entry.id")
+          .entry-header
+            .entry-timestamp(x-text="formatTimestamp(entry.timestamp)")
+            button.delete-button(@click="deleteEntry(entry.id)") ×
+          .entry-content
+            p.entry-text(x-show="entry.text", x-text="entry.text")
+            .entry-photo(x-show="entry.photo")
+              img(:src="entry.photo", alt="Food photo")
+        .empty-history(x-show="entries.length === 0")
+          p No entries yet. Add your first food diary entry!
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
@@ -42,17 +71,68 @@ html(lang="en")
     script.
       function foodDiaryApp() {
         return {
+          currentView: "entry",
           note: "",
           photoBase64: null,
           photoPreview: null,
+          entries: [],
+          syncStatus: "idle", // idle, syncing, error
 
           async initApp() {
             try {
               await foodDiaryUtils.initDB(); // This calls initDB from static/app.js
+              await this.loadEntries(); // Load existing entries
+              await this.syncWithServer(); // Initial sync
               console.log("Alpine component initialized, DB connection ready via static/app.js.");
             } catch (error) {
               console.error("Alpine component: Failed to initialize DB via static/app.js:", error);
               alert("Database initialization failed. App may not function correctly.");
+            }
+          },
+
+          async syncWithServer() {
+            if (this.syncStatus === "syncing") return; // Prevent concurrent syncs
+            
+            this.syncStatus = "syncing";
+            try {
+              await foodDiaryUtils.syncWithServer();
+              await this.loadEntries(); // Refresh entries after sync
+              this.syncStatus = "idle";
+            } catch (error) {
+              console.error("Sync failed:", error);
+              this.syncStatus = "error";
+              // Don't show alert for sync errors - just log them
+            }
+          },
+
+          async loadEntries() {
+            try {
+              this.entries = await foodDiaryUtils.readAllEntriesFromDB();
+              // Sort by timestamp, newest first
+              this.entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            } catch (error) {
+              console.error("Error loading entries:", error);
+            }
+          },
+
+          formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString() + " " + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          },
+
+          async deleteEntry(entryId) {
+            if (!confirm("Are you sure you want to delete this entry?")) {
+              return;
+            }
+            try {
+              // Delete from local database
+              await foodDiaryUtils.deleteEntryFromDB(entryId);
+              // Also try to delete from server
+              await foodDiaryUtils.deleteEntryOnServer(entryId);
+              await this.loadEntries(); // Refresh the list
+            } catch (error) {
+              console.error("Error deleting entry:", error);
+              alert("Error deleting entry. Check console for details.");
             }
           },
 
@@ -101,6 +181,9 @@ html(lang="en")
               if (photoInput) {
                 photoInput.value = null;
               }
+              // Refresh entries list and switch to history view
+              await this.loadEntries();
+              this.currentView = "history";
             } catch (error) {
               console.error("Alpine component: Error saving entry via static/app.js:", error);
               alert("Error saving entry. Check console for details.");
