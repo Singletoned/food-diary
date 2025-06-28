@@ -1,8 +1,46 @@
+import os
+import sqlite3
+import tempfile
+
+import pytest
 from starlette.testclient import TestClient
 
 from food_diary.main import (
     app,
 )  # Assuming your app instance is in src/food-diary/main.py
+
+# Use a test database
+TEST_DB_PATH = tempfile.mktemp(suffix=".db")
+
+
+@pytest.fixture(autouse=True)
+def setup_test_db(monkeypatch):
+    """Set up a clean test database for each test."""
+    # Patch the DB_PATH to use test database
+    monkeypatch.setattr("food_diary.main.DB_PATH", TEST_DB_PATH)
+
+    # Initialize test database
+    conn = sqlite3.connect(TEST_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            text TEXT,
+            photo TEXT,
+            synced BOOLEAN DEFAULT FALSE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+    yield
+
+    # Clean up test database after each test
+    if os.path.exists(TEST_DB_PATH):
+        os.unlink(TEST_DB_PATH)
+
 
 client = TestClient(app)
 
