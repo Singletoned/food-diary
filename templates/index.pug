@@ -49,6 +49,7 @@ html(lang="en")
         h3 Photo Preview:
         img.photo-preview(:src="photoPreview", alt="Photo preview")
 
+      .form-group
         button.save-button(@click="saveEntry", :disabled="!note && !photoBase64") Save Entry
 
     .view-container(x-show="currentView === 'history'")
