@@ -11,7 +11,7 @@ services:
       - ../pyproject.toml:/app/pyproject.toml
     # Command to run the application, ensuring it listens on all interfaces
     # and uses the standard port 8000.
-    command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000 --log-level trace --access-log
+    command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000 --log-level error
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 1s
@@ -56,7 +56,7 @@ services:
     environment:
       - BASE_URL=https://nginx
     platform: linux/amd64  # Force compatibility
-    command: ["pytest", "e2e/test_app.py", "-v"]
+    command: ["pytest", "e2e/test_app.py", "-q"]
 
 networks:
   test_network:
