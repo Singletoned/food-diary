@@ -55,7 +55,7 @@ html(lang="en")
     .view-container(x-show="currentView === 'history'")
       h2 Entry History
       .history-container
-        .entry(x-for="entry in entries", :key="entry.id")
+        .entry(x-for="entry in entries", :key="entry.id", x-show="entry.text || entry.photo")
           .entry-header
             .entry-timestamp(x-text="formatTimestamp(entry.timestamp)")
             button.delete-button(@click="deleteEntry(entry.id)") ×
