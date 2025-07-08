@@ -1,79 +1,158 @@
-# test_app.py
-
-import unittest
-
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
+import pytest
+from playwright.sync_api import Page, BrowserContext
 
 
-class TestFoodDiaryApp(unittest.TestCase):
-    def setUp(self):
-        options = webdriver.ChromeOptions()
-        self.driver = webdriver.Remote(
-            command_executor="http://selenium:4444/wd/hub", options=options
-        )
-        self.driver.get("http://app:8000")
-        # Wait for page to load
-        WebDriverWait(self.driver, 10).until(
-            lambda driver: driver.execute_script("return document.readyState") == "complete"
-        )
-
-    def tearDown(self):
-        self.driver.quit()
-
-    def test_homepage_title(self):
-        """Test that the homepage has the correct title"""
-        page_title = self.driver.title
-        self.assertEqual(page_title, "Food Diary Entry")
-
-        # Also check h1 element
-        h1_element = self.driver.find_element(By.TAG_NAME, "h1")
-        self.assertEqual(h1_element.text, "Food Diary")
-
-    def test_form_elements_present(self):
-        """Test that all form elements are present"""
-        # Check for note textarea
-        note_textarea = self.driver.find_element(By.ID, "note")
-        self.assertIsNotNone(note_textarea)
-
-        # Check for photo input
-        photo_input = self.driver.find_element(By.ID, "photo")
-        self.assertIsNotNone(photo_input)
-
-        # Check for save button
-        save_button = self.driver.find_element(By.CSS_SELECTOR, ".save-button")
-        self.assertIsNotNone(save_button)
-
-    def test_note_input_functionality(self):
-        """Test that note input works"""
-        note_textarea = self.driver.find_element(By.ID, "note")
-        test_note = "Test food diary entry"
-        note_textarea.send_keys(test_note)
-
-        # Verify the text was entered
-        self.assertEqual(note_textarea.get_attribute("value"), test_note)
-
-    def test_save_button_disabled_when_empty(self):
-        """Test that save button is disabled when no content"""
-        save_button = self.driver.find_element(By.CSS_SELECTOR, ".save-button")
-        self.assertTrue(save_button.get_attribute("disabled"))
-
-    def test_save_button_enabled_with_note(self):
-        """Test that save button becomes enabled when note is entered"""
-        note_textarea = self.driver.find_element(By.ID, "note")
-        note_textarea.send_keys("Test entry")
-
-        # Wait a moment for Alpine.js to react
-        WebDriverWait(self.driver, 5).until(
-            lambda driver: not self.driver.find_element(
-                By.CSS_SELECTOR, ".save-button"
-            ).get_attribute("disabled")
-        )
-
-        save_button = self.driver.find_element(By.CSS_SELECTOR, ".save-button")
-        self.assertFalse(save_button.get_attribute("disabled"))
+@pytest.fixture
+def context(browser):
+    context = browser.new_context(ignore_https_errors=True)
+    yield context
+    context.close()
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.fixture
+def page(context):
+    page = context.new_page()
+    yield page
+    page.close()
+
+
+def test_homepage_title(page: Page):
+    """Test that the homepage has the correct title"""
+    page.goto("https://nginx")
+    
+    # Check page title
+    assert page.title() == "Food Diary Entry"
+    
+    # Check h1 element
+    h1_element = page.locator("h1")
+    assert h1_element.text_content() == "Food Diary"
+
+
+def test_form_elements_present(page: Page):
+    """Test that all form elements are present"""
+    page.goto("https://nginx")
+    
+    # Check for note textarea
+    note_textarea = page.locator("#note")
+    assert note_textarea.is_visible()
+    
+    # Check for photo input
+    photo_input = page.locator("#photo")
+    assert photo_input.is_visible()
+    
+    # Check for save button
+    save_button = page.locator(".save-button")
+    assert save_button.is_visible()
+
+
+def test_note_input_functionality(page: Page):
+    """Test that note input works"""
+    page.goto("https://nginx")
+    
+    note_textarea = page.locator("#note")
+    test_note = "Test food diary entry"
+    note_textarea.fill(test_note)
+    
+    # Verify the text was entered
+    assert note_textarea.input_value() == test_note
+
+
+def test_save_button_disabled_when_empty(page: Page):
+    """Test that save button is disabled when no content"""
+    page.goto("https://nginx")
+    
+    save_button = page.locator(".save-button")
+    assert save_button.is_disabled()
+
+
+def test_save_button_enabled_with_note(page: Page):
+    """Test that save button becomes enabled when note is entered"""
+    page.goto("https://nginx")
+    
+    note_textarea = page.locator("#note")
+    note_textarea.fill("Test entry")
+    
+    # Wait for Alpine.js to react
+    save_button = page.locator(".save-button")
+    assert save_button.is_enabled()
+
+
+def test_navigation_tabs(page: Page):
+    """Test that navigation tabs work correctly"""
+    page.goto("https://nginx")
+    
+    # Check that New Entry tab is active by default
+    new_entry_tab = page.locator(".nav-tab").filter(has_text="New Entry")
+    history_tab = page.locator(".nav-tab").filter(has_text="History")
+    
+    assert new_entry_tab.get_attribute("class").find("active") != -1
+    
+    # Click History tab
+    history_tab.click()
+    
+    # Check that History tab is now active
+    assert history_tab.get_attribute("class").find("active") != -1
+    
+    # Check that History view is visible
+    history_view = page.locator(".view-container").filter(has_text="Entry History")
+    assert history_view.is_visible()
+
+
+def test_entry_save_and_display(page: Page):
+    """Test saving an entry and viewing it in history"""
+    page.goto("https://nginx")
+    
+    # Fill in a note
+    test_note = "Test food diary entry for history"
+    note_textarea = page.locator("#note")
+    note_textarea.fill(test_note)
+    
+    # Click save button
+    save_button = page.locator(".save-button")
+    save_button.click()
+    
+    # Handle the alert
+    page.on("dialog", lambda dialog: dialog.accept())
+    
+    # The app should automatically switch to history view
+    # Wait for the history view to be visible
+    page.wait_for_selector(".view-container:has-text('Entry History')")
+    
+    # Check that the entry appears in history
+    entry = page.locator(".entry").filter(has_text=test_note)
+    assert entry.is_visible()
+    
+    # Check that the entry has a timestamp
+    entry_timestamp = entry.locator(".entry-timestamp")
+    assert entry_timestamp.is_visible()
+    
+    # Check that the entry text is displayed
+    entry_text = entry.locator(".entry-text")
+    assert entry_text.text_content() == test_note
+
+
+def test_empty_history_message(page: Page):
+    """Test that empty history shows appropriate message"""
+    page.goto("https://nginx")
+    
+    # Go to history tab
+    history_tab = page.locator(".nav-tab").filter(has_text="History")
+    history_tab.click()
+    
+    # Check for empty history message
+    empty_message = page.locator(".empty-history")
+    assert empty_message.is_visible()
+    assert "No entries yet" in empty_message.text_content()
+
+
+def test_sync_controls_present(page: Page):
+    """Test that sync controls are present"""
+    page.goto("https://nginx")
+    
+    # Check for sync button
+    sync_button = page.locator(".sync-button")
+    assert sync_button.is_visible()
+    
+    # Check for online status
+    online_status = page.locator(".online-status")
+    assert online_status.is_visible()
