@@ -3,8 +3,6 @@ services:
     build:
       context: .. # Project root directory
       dockerfile: ./docker/app/Dockerfile
-    ports:
-      - "8000:8000" # Expose app port to host for potential manual inspection
     volumes:
       # Mount source code for live reload
       - ../src:/app/src
@@ -23,31 +21,42 @@ services:
     networks:
       - test_network
 
-  # Standalone Selenium with Chrome
-  selenium:
-    image: selenium/standalone-chrome:4.15.0
-    container_name: selenium-chrome
-    shm_size: 2gb
+  nginx:
+    image: nginx:alpine
     ports:
-      - "4444:4444"
-      - "7900:7900" # VNC port for debugging (optional)
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost/"]
+      interval: 1s
+      timeout: 1s
+      retries: 5
+      start_period: 1s
     networks:
       - test_network
-    # Optional: Enable VNC for visual debugging
-    # Visit http://localhost:7900 (password: secret) to see browser
 
   tests:
     build:
       context: ..
-      dockerfile: ./docker/tests/Dockerfile
+      dockerfile: ./docker/playwright/Dockerfile
     depends_on:
-      selenium:
-        condition: service_started
-      app:
+      nginx:
         condition: service_healthy
     networks:
       - test_network
-    command: ["python", "tests/e2e/test_app.py"]
+    volumes:
+      - ../tests:/tests
+    working_dir: /tests
+    environment:
+      - BASE_URL=https://nginx
+    platform: linux/amd64  # Force compatibility
+    command: ["pytest", "e2e/test_app.py", "-v"]
 
 networks:
   test_network:
