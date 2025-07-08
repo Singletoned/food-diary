@@ -81,42 +81,55 @@ def test_navigation_tabs(page: Page):
     """Test that navigation tabs work correctly"""
     page.goto("https://nginx")
     
+    # Wait for Alpine.js to initialize
+    page.wait_for_function("() => window.Alpine && window.Alpine.version")
+    
     # Check that New Entry tab is active by default
     new_entry_tab = page.locator(".nav-tab").filter(has_text="New Entry")
     history_tab = page.locator(".nav-tab").filter(has_text="History")
     
-    assert new_entry_tab.get_attribute("class").find("active") != -1
+    assert "active" in new_entry_tab.get_attribute("class")
     
     # Click History tab
     history_tab.click()
     
-    # Check that History tab is now active
-    assert history_tab.get_attribute("class").find("active") != -1
+    # Wait for the view to change
+    page.wait_for_selector(".view-container:visible", state="attached")
     
-    # Check that History view is visible
-    history_view = page.locator(".view-container").filter(has_text="Entry History")
-    assert history_view.is_visible()
+    # Check that History tab is now active
+    assert "active" in history_tab.get_attribute("class")
+    
+    # Check that History view is visible  
+    page.wait_for_selector("h2:has-text('Entry History')")
+    history_heading = page.locator("h2").filter(has_text="Entry History")
+    assert history_heading.is_visible()
 
 
 def test_entry_save_and_display(page: Page):
     """Test saving an entry and viewing it in history"""
     page.goto("https://nginx")
     
+    # Wait for Alpine.js to initialize
+    page.wait_for_function("() => window.Alpine && window.Alpine.version")
+    
     # Fill in a note
     test_note = "Test food diary entry for history"
     note_textarea = page.locator("#note")
     note_textarea.fill(test_note)
     
+    # Set up dialog handler before clicking save
+    page.on("dialog", lambda dialog: dialog.accept())
+    
     # Click save button
     save_button = page.locator(".save-button")
     save_button.click()
     
-    # Handle the alert
-    page.on("dialog", lambda dialog: dialog.accept())
-    
     # The app should automatically switch to history view
-    # Wait for the history view to be visible
-    page.wait_for_selector(".view-container:has-text('Entry History')")
+    # Wait for the history view heading to be visible
+    page.wait_for_selector("h2:has-text('Entry History')", timeout=10000)
+    
+    # Wait a moment for entries to load
+    page.wait_for_timeout(1000)
     
     # Check that the entry appears in history
     entry = page.locator(".entry").filter(has_text=test_note)
