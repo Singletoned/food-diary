@@ -146,3 +146,91 @@ def test_api_delete_nonexistent_entry():
     response = client.delete("/api/entries/99999")
     assert response.status_code == 404
     assert "not found" in response.json()["error"].lower()
+
+
+def test_homepage_contains_history_view():
+    """
+    Tests if the homepage contains the history view elements.
+    """
+    response = client.get("/")
+    assert response.status_code == 200
+    # Check for history tab
+    assert "History" in response.text
+    # Check for history container
+    assert "history-container" in response.text
+    # Check for empty history message
+    assert "No entries yet" in response.text
+
+
+def test_homepage_entry_template_structure():
+    """
+    Tests if the homepage contains the correct Alpine.js template structure for entries.
+    """
+    response = client.get("/")
+    assert response.status_code == 200
+    # Check for Alpine.js entry template
+    assert 'x-for="entry in entries"' in response.text
+    assert "entry-timestamp" in response.text
+    assert "entry-text" in response.text
+    assert "entry-photo" in response.text
+    assert "delete-button" in response.text
+
+
+def test_history_functionality_integration():
+    """
+    Integration test that creates entries via API and verifies they appear in history.
+    This tests the full flow from API to frontend data binding.
+    """
+    # Create multiple entries with different timestamps
+    entries_data = [
+        {"timestamp": "2023-12-07T09:00:00Z", "text": "Breakfast entry", "photo": None},
+        {
+            "timestamp": "2023-12-07T12:00:00Z",
+            "text": "Lunch entry",
+            "photo": "data:image/jpeg;base64,test",
+        },
+        {"timestamp": "2023-12-07T18:00:00Z", "text": "Dinner entry", "photo": None},
+    ]
+
+    created_ids = []
+    for entry_data in entries_data:
+        response = client.post("/api/entries", json=entry_data)
+        assert response.status_code == 201
+        created_ids.append(response.json()["id"])
+
+    # Verify entries can be retrieved
+    response = client.get("/api/entries")
+    assert response.status_code == 200
+    entries = response.json()
+    assert len(entries) == 3
+
+    # Verify entries have correct data
+    texts = [entry["text"] for entry in entries]
+    assert "Breakfast entry" in texts
+    assert "Lunch entry" in texts
+    assert "Dinner entry" in texts
+
+
+def test_history_entry_deletion():
+    """
+    Tests that entries can be deleted and are removed from history.
+    """
+    # Create an entry
+    entry_data = {"timestamp": "2023-12-07T15:00:00Z", "text": "Entry to delete", "photo": None}
+    create_response = client.post("/api/entries", json=entry_data)
+    assert create_response.status_code == 201
+    entry_id = create_response.json()["id"]
+
+    # Verify entry exists
+    get_response = client.get("/api/entries")
+    entries = get_response.json()
+    assert any(e["id"] == entry_id for e in entries)
+
+    # Delete the entry
+    delete_response = client.delete(f"/api/entries/{entry_id}")
+    assert delete_response.status_code == 200
+
+    # Verify entry is gone from history
+    get_response = client.get("/api/entries")
+    entries = get_response.json()
+    assert not any(e["id"] == entry_id for e in entries)

@@ -55,14 +55,15 @@ html(lang="en")
     .view-container(x-show="currentView === 'history'")
       h2 Entry History
       .history-container
-        .entry(x-for="entry in entries", :key="entry.id")
-          .entry-header
-            .entry-timestamp(x-text="formatTimestamp(entry.timestamp)")
-            button.delete-button(@click="deleteEntry(entry.id)") ×
-          .entry-content
-            p.entry-text(x-text="entry.text")
-            .entry-photo(x-show="entry.photo")
-              img(:src="entry.photo", alt="Food photo")
+        template(x-for="entry in entries", :key="entry.id")
+          .entry
+            .entry-header
+              .entry-timestamp(x-text="formatTimestamp(entry.timestamp)")
+              button.delete-button(@click="deleteEntry(entry.id)") ×
+            .entry-content
+              p.entry-text(x-text="entry.text")
+              .entry-photo(x-show="entry.photo")
+                img(:src="entry.photo", alt="Food photo")
         .empty-history(x-show="entries.length === 0")
           p No entries yet. Add your first food diary entry!
 
@@ -109,8 +110,11 @@ html(lang="en")
           async loadEntries() {
             try {
               this.entries = await foodDiaryUtils.readAllEntriesFromDB();
+              console.log("DEBUG: Loaded entries from DB:", this.entries);
+              console.log("DEBUG: Number of entries:", this.entries.length);
               // Sort by timestamp, newest first
               this.entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+              console.log("DEBUG: After sorting:", this.entries);
             } catch (error) {
               console.error("Error loading entries:", error);
             }
@@ -173,7 +177,7 @@ html(lang="en")
             try {
               const newEntryId = await foodDiaryUtils.saveEntryToDB(entryData); // Calls saveEntryToDB from static/app.js
               console.log("Alpine component: Entry saved successfully with ID:", newEntryId);
-              alert("Entry saved!");
+              alert(`Entry saved! Data: ${JSON.stringify({text: this.note, photo: this.photoBase64 ? 'has photo' : 'no photo', timestamp: entryData.timestamp})}`);
               this.note = "";
               this.photoBase64 = null;
               this.photoPreview = null;
