@@ -3,7 +3,7 @@ format *files:
     taidy .
 
 serve:
-    uvicorn src.food_diary.main:app --reload
+    uvicorn src.food_diary.main:app --reload --host 0.0.0.0 --port 9000
 
 test:
     pytest tests/test_main.py
