@@ -14,24 +14,42 @@ html(lang="en")
     )
     script(src="/static/app.js")
   body(x-data="foodDiaryApp()", x-init="initApp()")
-    header
-      .header-top
+    // Login page for unauthenticated users
+    .login-container(x-show="!isAuthenticated")
+      .login-card
         h1 Food Diary
-        .sync-controls
-          button.sync-button(
-            @click="syncWithServer",
-            :disabled="syncStatus === 'syncing'"
-          )
-            span(x-show="syncStatus === 'idle'") 🔄 Sync
-            span(x-show="syncStatus === 'syncing'") ⏳ Syncing...
-            span(x-show="syncStatus === 'error'") ❌ Sync Error
-          button.export-button(
-            @click="exportData",
-            :disabled="entries.length === 0"
-          ) 📦 Export
-          .online-status(:class="{ offline: !navigator.onLine }")
-            span(x-show="navigator.onLine") 🟢 Online
-            span(x-show="!navigator.onLine") 🔴 Offline
+        p Welcome! Please sign in with your GitHub account to continue.
+        button.login-button(@click="login") 
+          | 🐙 Sign in with GitHub
+
+    // Main app for authenticated users  
+    .app-container(x-show="isAuthenticated")
+      header
+        .header-top
+          h1 Food Diary
+          .user-info
+            img.user-avatar(
+              x-show="userInfo?.avatar_url",
+              :src="userInfo?.avatar_url",
+              :alt="userInfo?.username"
+            )
+            span.user-name(x-text="userInfo?.name || userInfo?.username")
+            button.logout-button(@click="logout") Logout
+          .sync-controls
+            button.sync-button(
+              @click="syncWithServer",
+              :disabled="syncStatus === 'syncing'"
+            )
+              span(x-show="syncStatus === 'idle'") 🔄 Sync
+              span(x-show="syncStatus === 'syncing'") ⏳ Syncing...
+              span(x-show="syncStatus === 'error'") ❌ Sync Error
+            button.export-button(
+              @click="exportData",
+              :disabled="entries.length === 0"
+            ) 📦 Export
+            .online-status(:class="{ offline: !navigator.onLine }")
+              span(x-show="navigator.onLine") 🟢 Online
+              span(x-show="!navigator.onLine") 🔴 Offline
       nav.nav-tabs
         button.nav-tab(
           :class="{ active: currentView === 'entry' }",
@@ -42,49 +60,49 @@ html(lang="en")
           @click="currentView = 'history'"
         ) History
 
-    .view-container(x-show="currentView === 'entry'")
-      h2 Add New Entry
-      .food-diary-form
-      .form-group
-        label.form-label(for="note") Note:
-        textarea#note.form-textarea(
-          x-model="note",
-          rows="4",
-          placeholder="Enter your food notes..."
-        )
+      .view-container(x-show="currentView === 'entry'")
+        h2 Add New Entry
+        .food-diary-form
+        .form-group
+          label.form-label(for="note") Note:
+          textarea#note.form-textarea(
+            x-model="note",
+            rows="4",
+            placeholder="Enter your food notes..."
+          )
 
-      .form-group
-        label.form-label(for="photo") Photo:
-        input#photo.form-file-input(
-          type="file",
-          accept="image/*",
-          @change="handlePhotoUpload($event)"
-        )
+        .form-group
+          label.form-label(for="photo") Photo:
+          input#photo.form-file-input(
+            type="file",
+            accept="image/*",
+            @change="handlePhotoUpload($event)"
+          )
 
-      .form-group(x-show="photoPreview")
-        h3 Photo Preview:
-        img.photo-preview(:src="photoPreview", alt="Photo preview")
+        .form-group(x-show="photoPreview")
+          h3 Photo Preview:
+          img.photo-preview(:src="photoPreview", alt="Photo preview")
 
-      .form-group
-        button.save-button(
-          @click="saveEntry",
-          :disabled="!note && !photoBase64"
-        ) Save Entry
+        .form-group
+          button.save-button(
+            @click="saveEntry",
+            :disabled="!note && !photoBase64"
+          ) Save Entry
 
-    .view-container(x-show="currentView === 'history'")
-      h2 Entry History
-      .history-container
-        template(x-for="entry in entries", :key="entry.id")
-          .entry
-            .entry-header
-              .entry-timestamp(x-text="formatTimestamp(entry.timestamp)")
-              button.delete-button(@click="deleteEntry(entry.id)") ×
-            .entry-content
-              p.entry-text(x-text="entry.text")
-              .entry-photo(x-show="entry.photo")
-                img(:src="entry.photo", alt="Food photo")
-        .empty-history(x-show="entries.length === 0")
-          p No entries yet. Add your first food diary entry!
+      .view-container(x-show="currentView === 'history'")
+        h2 Entry History
+        .history-container
+          template(x-for="entry in entries", :key="entry.id")
+            .entry
+              .entry-header
+                .entry-timestamp(x-text="formatTimestamp(entry.timestamp)")
+                button.delete-button(@click="deleteEntry(entry.id)") ×
+              .entry-content
+                p.entry-text(x-text="entry.text")
+                .entry-photo(x-show="entry.photo")
+                  img(:src="entry.photo", alt="Food photo")
+          .empty-history(x-show="entries.length === 0")
+            p No entries yet. Add your first food diary entry!
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
@@ -98,8 +116,16 @@ html(lang="en")
           photoPreview: null,
           entries: [],
           syncStatus: "idle", // idle, syncing, error
+          isAuthenticated: false,
+          userInfo: null,
 
           async initApp() {
+            // Check authentication status first
+            await this.checkAuth();
+
+            if (!this.isAuthenticated) {
+              return; // Don't initialize app data if not authenticated
+            }
             try {
               await foodDiaryUtils.initDB(); // This calls initDB from static/app.js
               await this.loadEntries(); // Load existing entries
@@ -263,6 +289,36 @@ html(lang="en")
             } catch (error) {
               console.error("Export failed:", error);
               alert("Export failed. Check console for details.");
+            }
+          },
+
+          async checkAuth() {
+            try {
+              const response = await fetch("/api/user");
+              const data = await response.json();
+              this.isAuthenticated = data.authenticated;
+              this.userInfo = data.user || null;
+            } catch (error) {
+              console.error("Auth check failed:", error);
+              this.isAuthenticated = false;
+              this.userInfo = null;
+            }
+          },
+
+          async login() {
+            window.location.href = "/auth/login";
+          },
+
+          async logout() {
+            try {
+              await fetch("/auth/logout", { method: "POST" });
+              this.isAuthenticated = false;
+              this.userInfo = null;
+              this.entries = [];
+              window.location.href = "/";
+            } catch (error) {
+              console.error("Logout failed:", error);
+              window.location.href = "/auth/logout";
             }
           },
 

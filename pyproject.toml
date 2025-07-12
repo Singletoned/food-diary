@@ -8,6 +8,9 @@ dependencies = [
   "starlette",
   "uvicorn[standard]", # [standard] includes common extras like websockets and http tools
   "pypugjs",
+  "authlib",           # OAuth client library
+  "itsdangerous",      # Session management and security
+  "python-dotenv",     # Environment variable management
 ]
 
 [project.urls]
