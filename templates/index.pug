@@ -9,22 +9,38 @@ html(lang="en")
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js",
       defer
     )
+    script(
+      src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+    )
     script(src="/static/app.js")
   body(x-data="foodDiaryApp()", x-init="initApp()")
     header
       .header-top
         h1 Food Diary
         .sync-controls
-          button.sync-button(@click="syncWithServer", :disabled="syncStatus === 'syncing'")
+          button.sync-button(
+            @click="syncWithServer",
+            :disabled="syncStatus === 'syncing'"
+          )
             span(x-show="syncStatus === 'idle'") 🔄 Sync
             span(x-show="syncStatus === 'syncing'") ⏳ Syncing...
             span(x-show="syncStatus === 'error'") ❌ Sync Error
+          button.export-button(
+            @click="exportData",
+            :disabled="entries.length === 0"
+          ) 📦 Export
           .online-status(:class="{ offline: !navigator.onLine }")
             span(x-show="navigator.onLine") 🟢 Online
             span(x-show="!navigator.onLine") 🔴 Offline
       nav.nav-tabs
-        button.nav-tab(:class="{ active: currentView === 'entry' }", @click="currentView = 'entry'") New Entry
-        button.nav-tab(:class="{ active: currentView === 'history' }", @click="currentView = 'history'") History
+        button.nav-tab(
+          :class="{ active: currentView === 'entry' }",
+          @click="currentView = 'entry'"
+        ) New Entry
+        button.nav-tab(
+          :class="{ active: currentView === 'history' }",
+          @click="currentView = 'history'"
+        ) History
 
     .view-container(x-show="currentView === 'entry'")
       h2 Add New Entry
@@ -50,7 +66,10 @@ html(lang="en")
         img.photo-preview(:src="photoPreview", alt="Photo preview")
 
       .form-group
-        button.save-button(@click="saveEntry", :disabled="!note && !photoBase64") Save Entry
+        button.save-button(
+          @click="saveEntry",
+          :disabled="!note && !photoBase64"
+        ) Save Entry
 
     .view-container(x-show="currentView === 'history'")
       h2 Entry History
@@ -94,7 +113,7 @@ html(lang="en")
 
           async syncWithServer() {
             if (this.syncStatus === "syncing") return; // Prevent concurrent syncs
-            
+
             this.syncStatus = "syncing";
             try {
               await foodDiaryUtils.syncWithServer();
@@ -122,7 +141,7 @@ html(lang="en")
 
           formatTimestamp(timestamp) {
             const date = new Date(timestamp);
-            return date.toLocaleDateString() + " " + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
           },
 
           async deleteEntry(entryId) {
@@ -177,7 +196,7 @@ html(lang="en")
             try {
               const newEntryId = await foodDiaryUtils.saveEntryToDB(entryData); // Calls saveEntryToDB from static/app.js
               console.log("Alpine component: Entry saved successfully with ID:", newEntryId);
-              alert(`Entry saved! Data: ${JSON.stringify({text: this.note, photo: this.photoBase64 ? 'has photo' : 'no photo', timestamp: entryData.timestamp})}`);
+              alert(`Entry saved! Data: ${JSON.stringify({ text: this.note, photo: this.photoBase64 ? "has photo" : "no photo", timestamp: entryData.timestamp })}`);
               this.note = "";
               this.photoBase64 = null;
               this.photoPreview = null;
@@ -194,6 +213,59 @@ html(lang="en")
               alert("Error saving entry. Check console for details.");
             }
           },
+
+          async exportData() {
+            try {
+              const zip = new JSZip();
+
+              // Create JSON data without photos for the main export
+              const exportEntries = this.entries.map((entry) => ({
+                id: entry.id,
+                timestamp: entry.timestamp,
+                text: entry.text,
+                hasPhoto: !!entry.photo,
+                synced: entry.synced,
+              }));
+
+              // Add JSON file
+              zip.file("entries.json", JSON.stringify(exportEntries, null, 2));
+
+              // Add images folder and extract photos
+              const imagesFolder = zip.folder("images");
+              let imageCount = 0;
+
+              for (const entry of this.entries) {
+                if (entry.photo) {
+                  // Extract base64 data and file extension
+                  const matches = entry.photo.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
+                  if (matches) {
+                    const extension = matches[1];
+                    const base64Data = matches[2];
+                    const fileName = `entry_${entry.id}_${entry.timestamp.split("T")[0]}.${extension}`;
+                    imagesFolder.file(fileName, base64Data, { base64: true });
+                    imageCount++;
+                  }
+                }
+              }
+
+              // Generate and download zip
+              const content = await zip.generateAsync({ type: "blob" });
+              const url = window.URL.createObjectURL(content);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `food-diary-export-${new Date().toISOString().split("T")[0]}.zip`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              window.URL.revokeObjectURL(url);
+
+              alert(`Export complete! Downloaded ${this.entries.length} entries with ${imageCount} images.`);
+            } catch (error) {
+              console.error("Export failed:", error);
+              alert("Export failed. Check console for details.");
+            }
+          },
+
           // Functions to use readAllEntriesFromDB or markEntryAsSyncedInDB can be added here
           // when UI elements for those actions are implemented. For example:
           /*
