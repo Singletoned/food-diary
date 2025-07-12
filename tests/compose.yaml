@@ -55,7 +55,7 @@ services:
     working_dir: /tests
     environment:
       - BASE_URL=https://nginx
-    platform: linux/amd64  # Force compatibility
+    platform: linux/amd64 # Force compatibility
     command: ["pytest", "e2e/", "-v"]
 
 networks:
