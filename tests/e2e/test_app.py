@@ -112,7 +112,7 @@ def test_entry_save_and_display(page: Page):
     # Wait for Alpine.js to initialize
     page.wait_for_function("() => window.Alpine && window.Alpine.version")
     
-    # Fill in a note
+    # Fill in a note with meaningful content
     test_note = "Test food diary entry for history"
     note_textarea = page.locator("#note")
     note_textarea.fill(test_note)
@@ -131,22 +131,45 @@ def test_entry_save_and_display(page: Page):
     # Wait a bit for any IndexedDB operations to complete
     page.wait_for_timeout(2000)
     
-    # Check if we're successfully on the history view (this is the main test goal)
+    # Check if we're successfully on the history view
     history_heading = page.locator("h2").filter(has_text="Entry History")
     assert history_heading.is_visible()
     
-    # Try to find the entry, but don't fail if it's not visible (due to IndexedDB or display issues)
-    try:
-        entry = page.locator(".entry").filter(has_text=test_note)
-        if entry.is_visible():
-            # Bonus: if the entry is visible, verify its structure
-            entry_timestamp = entry.locator(".entry-timestamp")
-            assert entry_timestamp.is_visible()
-            entry_text = entry.locator(".entry-text")
-            assert entry_text.text_content() == test_note
-    except:
-        # Entry not visible - this is OK, the main goal is to test the save flow
-        pass
+    # Verify the entry was saved and displays correctly
+    # Check if there are any entries at all
+    entries = page.locator(".entry")
+    entry_count = entries.count()
+    print(f"Found {entry_count} entries")
+    assert entry_count > 0, "No entries found in history"
+    
+    # Debug: Get the Alpine.js data
+    entries_data = page.evaluate("""
+        () => {
+            const component = document.querySelector('[x-data]')?._x_dataStack?.[0];
+            return component ? component.entries : [];
+        }
+    """)
+    print(f"Alpine entries data: {entries_data}")
+    
+    # Check if the entry text is visible
+    entry_text = page.locator(".entry-text")
+    entry_text_count = entry_text.count()
+    print(f"Found {entry_text_count} entry-text elements")
+    
+    if entry_text_count > 0:
+        for i in range(entry_text_count):
+            text_elem = entry_text.nth(i)
+            visible = text_elem.is_visible()
+            content = text_elem.text_content()
+            print(f"Entry text {i}: visible={visible}, content='{content}'")
+    
+    # Try to find a visible entry text
+    visible_entry_text = page.locator(".entry-text:visible")
+    if visible_entry_text.count() > 0:
+        assert visible_entry_text.first.text_content() == test_note
+    else:
+        # If none are visible, this is still the bug
+        assert False, "No entry-text elements are visible"
 
 
 def test_empty_history_message(page: Page):
