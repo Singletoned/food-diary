@@ -254,7 +254,7 @@ const foodDiaryUtils = {
               synced: true,
             };
 
-            const addRequest = store.add(entry);
+            const addRequest = store.put(entry);
 
             addRequest.onsuccess = () => {
               resolve();
