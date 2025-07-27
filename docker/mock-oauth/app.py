@@ -77,7 +77,6 @@ async def token_endpoint(request: Request):
     code = form_data.get("code")
     client_id = form_data.get("client_id")
     client_secret = form_data.get("client_secret")
-    redirect_uri = form_data.get("redirect_uri")
 
     # Handle client credentials in Authorization header
     auth_header = request.headers.get("authorization")
