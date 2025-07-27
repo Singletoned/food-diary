@@ -12,7 +12,7 @@ test-e2e-compose:
     @docker compose -f ./tests/compose.yaml build --quiet
     @docker compose -f ./tests/compose.yaml up \
         --abort-on-container-exit \
-        --exit-code-from tests \
+        --exit-code-from food-diary-tests \
         --quiet-pull \
         --remove-orphans \
-        tests
+        food-diary-tests

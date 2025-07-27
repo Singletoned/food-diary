@@ -1,5 +1,9 @@
+import os
 import pytest
 from playwright.sync_api import Page
+
+# Get base URL from environment, fallback to local nginx service name
+BASE_URL = os.getenv("BASE_URL", "https://food-diary-nginx")
 
 
 @pytest.fixture
@@ -18,7 +22,7 @@ def page(context):
 
 def test_homepage_title(page: Page):
     """Test that the homepage has the correct title"""
-    page.goto("https://nginx")
+    page.goto(BASE_URL)
 
     # Check page title
     assert page.title() == "Food Diary Entry"
@@ -30,7 +34,7 @@ def test_homepage_title(page: Page):
 
 def test_form_elements_present(page: Page):
     """Test that all form elements are present"""
-    page.goto("https://nginx")
+    page.goto(BASE_URL)
 
     # Check for note textarea
     note_textarea = page.locator("#note")
@@ -47,7 +51,7 @@ def test_form_elements_present(page: Page):
 
 def test_note_input_functionality(page: Page):
     """Test that note input works"""
-    page.goto("https://nginx")
+    page.goto(BASE_URL)
 
     note_textarea = page.locator("#note")
     test_note = "Test food diary entry"
@@ -59,7 +63,7 @@ def test_note_input_functionality(page: Page):
 
 def test_save_button_disabled_when_empty(page: Page):
     """Test that save button is disabled when no content"""
-    page.goto("https://nginx")
+    page.goto(BASE_URL)
 
     save_button = page.locator(".save-button")
     assert save_button.is_disabled()
@@ -67,7 +71,7 @@ def test_save_button_disabled_when_empty(page: Page):
 
 def test_save_button_enabled_with_note(page: Page):
     """Test that save button becomes enabled when note is entered"""
-    page.goto("https://nginx")
+    page.goto(BASE_URL)
 
     note_textarea = page.locator("#note")
     note_textarea.fill("Test entry")
@@ -79,7 +83,7 @@ def test_save_button_enabled_with_note(page: Page):
 
 def test_navigation_tabs(page: Page):
     """Test that navigation tabs work correctly"""
-    page.goto("https://nginx")
+    page.goto(BASE_URL)
 
     # Wait for Alpine.js to initialize
     page.wait_for_function("() => window.Alpine && window.Alpine.version")
@@ -107,7 +111,7 @@ def test_navigation_tabs(page: Page):
 
 def test_entry_save_and_display(page: Page):
     """Test saving an entry and viewing it in history"""
-    page.goto("https://nginx")
+    page.goto(BASE_URL)
 
     # Wait for Alpine.js to initialize
     page.wait_for_function("() => window.Alpine && window.Alpine.version")
@@ -174,7 +178,7 @@ def test_entry_save_and_display(page: Page):
 
 def test_empty_history_message(page: Page):
     """Test that empty history shows appropriate message"""
-    page.goto("https://nginx")
+    page.goto(BASE_URL)
 
     # Go to history tab
     history_tab = page.locator(".nav-tab").filter(has_text="History")
@@ -188,7 +192,7 @@ def test_empty_history_message(page: Page):
 
 def test_sync_controls_present(page: Page):
     """Test that sync controls are present"""
-    page.goto("https://nginx")
+    page.goto(BASE_URL)
 
     # Check for sync button
     sync_button = page.locator(".sync-button")

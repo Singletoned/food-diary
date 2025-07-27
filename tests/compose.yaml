@@ -1,5 +1,5 @@
 services:
-  app:
+  food-diary-app:
     build:
       context: .. # Project root directory
       dockerfile: ./docker/app/Dockerfile
@@ -19,9 +19,9 @@ services:
       retries: 5
       start_period: 1s
     networks:
-      - test_network
+      - food_diary_test_network
 
-  nginx:
+  food-diary-nginx:
     build:
       context: ..
       dockerfile: ./docker/nginx/Dockerfile
@@ -31,7 +31,7 @@ services:
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
-      app:
+      food-diary-app:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-k", "-f", "https://localhost/"]
@@ -40,25 +40,25 @@ services:
       retries: 5
       start_period: 1s
     networks:
-      - test_network
+      - food_diary_test_network
 
-  tests:
+  food-diary-tests:
     build:
       context: ..
       dockerfile: ./docker/playwright/Dockerfile
     depends_on:
-      nginx:
+      food-diary-nginx:
         condition: service_healthy
     networks:
-      - test_network
+      - food_diary_test_network
     volumes:
       - ../tests:/tests
     working_dir: /tests
     environment:
-      - BASE_URL=https://nginx
+      - BASE_URL=https://food-diary-nginx
     platform: linux/amd64 # Force compatibility
     command: ["pytest", "e2e/", "-v"]
 
 networks:
-  test_network:
+  food_diary_test_network:
     driver: bridge
