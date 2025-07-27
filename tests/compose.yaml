@@ -33,6 +33,7 @@ services:
     environment:
       - OAUTH_PROVIDER=mock
       - MOCK_OAUTH_URL=http://mock-oauth:8080
+      - BASE_URL=https://food-diary-nginx
     # Command to run the application, ensuring it listens on all interfaces
     # and uses the standard port 8000.
     command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000 --log-level error

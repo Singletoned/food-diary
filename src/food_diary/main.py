@@ -246,8 +246,19 @@ async def auth_callback(request: Request):
         token = await oauth.github.authorize_access_token(request)
 
         # Get user info from GitHub
-        resp = await oauth.github.get("user", token=token)
-        github_user = resp.json()
+        if OAUTH_PROVIDER == "mock":
+            # For mock OAuth, call the user endpoint directly
+            import httpx
+
+            mock_oauth_base = os.getenv("MOCK_OAUTH_URL", "http://mock-oauth:8080")
+            headers = {"Authorization": f"Bearer {token['access_token']}"}
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(f"{mock_oauth_base}/user", headers=headers)
+                github_user = resp.json()
+        else:
+            # For real GitHub OAuth
+            resp = await oauth.github.get("user", token=token)
+            github_user = resp.json()
 
         # Create or update user in our database
         user_id = create_or_update_user(github_user)

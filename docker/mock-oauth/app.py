@@ -71,7 +71,11 @@ async def authorize_endpoint(request: Request):
 
 async def token_endpoint(request: Request):
     """Mock OAuth token endpoint"""
+    print(f"Token endpoint called: {request.method} {request.url}")
+    print(f"Headers: {dict(request.headers)}")
+
     form_data = await request.form()
+    print(f"Form data: {dict(form_data)}")
 
     grant_type = form_data.get("grant_type")
     code = form_data.get("code")
@@ -178,7 +182,8 @@ async def user_info_endpoint(request: Request):
 
 async def openid_configuration(request: Request):
     """Mock OpenID Connect discovery endpoint"""
-    base_url = f"{request.url.scheme}://{request.url.netloc}"
+    # Use Docker network hostname instead of localhost for internal communication
+    base_url = "http://mock-oauth:8080"
 
     return JSONResponse(
         {
