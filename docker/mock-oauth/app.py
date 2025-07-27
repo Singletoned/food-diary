@@ -71,11 +71,7 @@ async def authorize_endpoint(request: Request):
 
 async def token_endpoint(request: Request):
     """Mock OAuth token endpoint"""
-    print(f"Token endpoint called: {request.method} {request.url}")
-    print(f"Headers: {dict(request.headers)}")
-
     form_data = await request.form()
-    print(f"Form data: {dict(form_data)}")
 
     grant_type = form_data.get("grant_type")
     code = form_data.get("code")

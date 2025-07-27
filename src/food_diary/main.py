@@ -1,3 +1,4 @@
+import logging
 import os
 import sqlite3
 from datetime import datetime
@@ -15,6 +16,9 @@ from starlette.staticfiles import StaticFiles
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Determine the application directory (e.g., src/food-diary)
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -269,7 +273,7 @@ async def auth_callback(request: Request):
         return RedirectResponse(url="/", status_code=302)
 
     except Exception as e:
-        print(f"OAuth callback error: {e}")
+        logging.error(f"OAuth callback error: {e}")
         return RedirectResponse(url="/?error=auth_failed", status_code=302)
 
 
