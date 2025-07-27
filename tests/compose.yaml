@@ -36,9 +36,6 @@ services:
     # Command to run the application, ensuring it listens on all interfaces
     # and uses the standard port 8000.
     command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000 --log-level error
-    depends_on:
-      mock-oauth:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 1s
@@ -58,6 +55,8 @@ services:
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
+      mock-oauth:
+        condition: service_healthy
       food-diary-app:
         condition: service_healthy
     networks:
