@@ -1,4 +1,19 @@
 services:
+  mock-oauth:
+    build:
+      context: ..
+      dockerfile: ./docker/mock-oauth/Dockerfile
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 1s
+      timeout: 1s
+      retries: 5
+      start_period: 1s
+    networks:
+      - food_diary_test_network
+
   food-diary-app:
     build:
       context: .. # Project root directory
@@ -9,9 +24,15 @@ services:
       - ../static:/app/static
       - ../templates:/app/templates
       - ../pyproject.toml:/app/pyproject.toml
+    environment:
+      - OAUTH_PROVIDER=mock
+      - MOCK_OAUTH_URL=http://mock-oauth:8080
     # Command to run the application, ensuring it listens on all interfaces
     # and uses the standard port 8000.
     command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000 --log-level error
+    depends_on:
+      mock-oauth:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 1s
@@ -33,12 +54,6 @@ services:
     depends_on:
       food-diary-app:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-k", "-f", "https://localhost/"]
-      interval: 1s
-      timeout: 1s
-      retries: 5
-      start_period: 1s
     networks:
       - food_diary_test_network
 
@@ -47,8 +62,7 @@ services:
       context: ..
       dockerfile: ./docker/playwright/Dockerfile
     depends_on:
-      food-diary-nginx:
-        condition: service_healthy
+      - food-diary-nginx
     networks:
       - food_diary_test_network
     volumes:
@@ -57,7 +71,7 @@ services:
     environment:
       - BASE_URL=https://food-diary-nginx
     platform: linux/amd64 # Force compatibility
-    command: ["pytest", "e2e/", "-v"]
+    command: ["python", "e2e/test_app.py"]
 
 networks:
   food_diary_test_network:

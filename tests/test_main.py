@@ -22,7 +22,7 @@ def setup_test_db(monkeypatch):
     # Initialize test database with full schema
     conn = sqlite3.connect(TEST_DB_PATH)
     cursor = conn.cursor()
-    
+
     # Create users table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -35,7 +35,7 @@ def setup_test_db(monkeypatch):
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    
+
     # Create entries table with user_id
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS entries (
@@ -49,13 +49,13 @@ def setup_test_db(monkeypatch):
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
-    
+
     # Create a test user
     cursor.execute("""
         INSERT INTO users (github_id, username, name, email)
         VALUES (12345, 'testuser', 'Test User', 'test@example.com')
     """)
-    
+
     conn.commit()
     conn.close()
 
@@ -72,6 +72,7 @@ client = TestClient(app)
 @pytest.fixture
 def mock_auth(monkeypatch):
     """Mock authentication to return test user."""
+
     def mock_get_current_user(request):
         return {
             "id": 1,
@@ -81,7 +82,7 @@ def mock_auth(monkeypatch):
             "email": "test@example.com",
             "avatar_url": None,
         }
-    
+
     monkeypatch.setattr("food_diary.main.get_current_user", mock_get_current_user)
 
 

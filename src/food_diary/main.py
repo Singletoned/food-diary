@@ -34,15 +34,33 @@ GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
+# OAuth Provider Configuration
+OAUTH_PROVIDER = os.getenv("OAUTH_PROVIDER", "github")
+
 # Initialize OAuth
 oauth = OAuth()
-oauth.register(
-    name="github",
-    client_id=GITHUB_CLIENT_ID,
-    client_secret=GITHUB_CLIENT_SECRET,
-    server_metadata_url="https://api.github.com/.well-known/openid_configuration",
-    client_kwargs={"scope": "user:email"},
-)
+
+if OAUTH_PROVIDER == "github":
+    # Production GitHub OAuth
+    oauth.register(
+        name="github",
+        client_id=GITHUB_CLIENT_ID,
+        client_secret=GITHUB_CLIENT_SECRET,
+        server_metadata_url="https://api.github.com/.well-known/openid_configuration",
+        client_kwargs={"scope": "user:email"},
+    )
+elif OAUTH_PROVIDER == "mock":
+    # Mock OAuth for testing
+    mock_oauth_base = os.getenv("MOCK_OAUTH_URL", "http://mock-oauth:8080")
+    oauth.register(
+        name="github",  # Keep same name for compatibility
+        client_id="mock-client-id",
+        client_secret="mock-client-secret",
+        server_metadata_url=f"{mock_oauth_base}/.well-known/openid_configuration",
+        client_kwargs={"scope": "user:email"},
+    )
+else:
+    raise ValueError(f"Unsupported OAuth provider: {OAUTH_PROVIDER}")
 
 
 # Initialize the database
