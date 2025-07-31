@@ -16,6 +16,9 @@ const foodDiaryUtils = {
             autoIncrement: true,
           });
           store.createIndex("timestamp", "timestamp", { unique: false });
+          store.createIndex("event_datetime", "event_datetime", {
+            unique: false,
+          });
           store.createIndex("synced", "synced", { unique: false });
         }
       };
@@ -43,6 +46,10 @@ const foodDiaryUtils = {
 
         const entry = {
           timestamp: entryData.timestamp || new Date().toISOString(),
+          event_datetime:
+            entryData.event_datetime ||
+            entryData.timestamp ||
+            new Date().toISOString(),
           text: entryData.text || "",
           photo: entryData.photo || null,
           synced: false,
@@ -200,6 +207,7 @@ const foodDiaryUtils = {
       },
       body: JSON.stringify({
         timestamp: entry.timestamp,
+        event_datetime: entry.event_datetime,
         text: entry.text,
         photo: entry.photo,
       }),
@@ -249,6 +257,8 @@ const foodDiaryUtils = {
             const entry = {
               id: serverEntry.id,
               timestamp: serverEntry.timestamp,
+              event_datetime:
+                serverEntry.event_datetime || serverEntry.timestamp,
               text: serverEntry.text || "",
               photo: serverEntry.photo || null,
               synced: true,

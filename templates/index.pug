@@ -72,6 +72,21 @@ html(lang="en")
           )
 
         .form-group
+          .checkbox-container
+            input#custom-datetime-checkbox.form-checkbox(
+              type="checkbox",
+              x-model="useCustomDatetime"
+            )
+            label.form-label(for="custom-datetime-checkbox") Set custom date/time
+
+          .datetime-input-container(x-show="useCustomDatetime")
+            label.form-label(for="event-datetime") Event Date & Time:
+            input#event-datetime.form-datetime-input(
+              type="datetime-local",
+              x-model="eventDatetime"
+            )
+
+        .form-group
           label.form-label(for="photo") Photo:
           input#photo.form-file-input(
             type="file",
@@ -95,7 +110,9 @@ html(lang="en")
           template(x-for="entry in entries", :key="entry.id")
             .entry
               .entry-header
-                .entry-timestamp(x-text="formatTimestamp(entry.timestamp)")
+                .entry-timestamp(
+                  x-text="formatTimestamp(entry.event_datetime)"
+                )
                 button.delete-button(@click="deleteEntry(entry.id)") ×
               .entry-content
                 p.entry-text(x-text="entry.text")
@@ -112,6 +129,8 @@ html(lang="en")
         return {
           currentView: "entry",
           note: "",
+          useCustomDatetime: false,
+          eventDatetime: "",
           photoBase64: null,
           photoPreview: null,
           entries: [],
@@ -157,16 +176,16 @@ html(lang="en")
               this.entries = await foodDiaryUtils.readAllEntriesFromDB();
               console.log("DEBUG: Loaded entries from DB:", this.entries);
               console.log("DEBUG: Number of entries:", this.entries.length);
-              // Sort by timestamp, newest first
-              this.entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+              // Sort by event_datetime, newest first
+              this.entries.sort((a, b) => new Date(b.event_datetime) - new Date(a.event_datetime));
               console.log("DEBUG: After sorting:", this.entries);
             } catch (error) {
               console.error("Error loading entries:", error);
             }
           },
 
-          formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
+          formatTimestamp(eventDatetime) {
+            const date = new Date(eventDatetime);
             return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
           },
 
@@ -215,6 +234,7 @@ html(lang="en")
 
             const entryData = {
               timestamp: new Date().toISOString(),
+              event_datetime: this.useCustomDatetime && this.eventDatetime ? new Date(this.eventDatetime).toISOString() : new Date().toISOString(),
               text: this.note,
               photo: this.photoBase64,
             };
@@ -222,8 +242,10 @@ html(lang="en")
             try {
               const newEntryId = await foodDiaryUtils.saveEntryToDB(entryData); // Calls saveEntryToDB from static/app.js
               console.log("Alpine component: Entry saved successfully with ID:", newEntryId);
-              alert(`Entry saved! Data: ${JSON.stringify({ text: this.note, photo: this.photoBase64 ? "has photo" : "no photo", timestamp: entryData.timestamp })}`);
+              alert(`Entry saved! Data: ${JSON.stringify({ text: this.note, photo: this.photoBase64 ? "has photo" : "no photo", event_datetime: entryData.event_datetime })}`);
               this.note = "";
+              this.useCustomDatetime = false;
+              this.eventDatetime = "";
               this.photoBase64 = null;
               this.photoPreview = null;
               // Reset file input
@@ -248,6 +270,7 @@ html(lang="en")
               const exportEntries = this.entries.map((entry) => ({
                 id: entry.id,
                 timestamp: entry.timestamp,
+                event_datetime: entry.event_datetime,
                 text: entry.text,
                 hasPhoto: !!entry.photo,
                 synced: entry.synced,
@@ -267,7 +290,7 @@ html(lang="en")
                   if (matches) {
                     const extension = matches[1];
                     const base64Data = matches[2];
-                    const fileName = `entry_${entry.id}_${entry.timestamp.split("T")[0]}.${extension}`;
+                    const fileName = `entry_${entry.id}_${entry.event_datetime.split("T")[0]}.${extension}`;
                     imagesFolder.file(fileName, base64Data, { base64: true });
                     imageCount++;
                   }

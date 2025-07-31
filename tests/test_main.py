@@ -36,12 +36,13 @@ def setup_test_db(monkeypatch):
         )
     """)
 
-    # Create entries table with user_id
+    # Create entries table with user_id and event_datetime
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             timestamp TEXT NOT NULL,
+            event_datetime TEXT,
             text TEXT,
             photo TEXT,
             synced BOOLEAN DEFAULT FALSE,

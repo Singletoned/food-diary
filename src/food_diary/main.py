@@ -27,7 +27,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, os.pardir, os.pardir))
 
 TEMPLATES_DIR = os.path.join(PROJECT_ROOT, "templates")
 STATIC_DIR = os.path.join(PROJECT_ROOT, "static")
-DB_PATH = os.path.join(PROJECT_ROOT, "food_diary.db")
+DB_PATH = os.getenv("DB_PATH", os.path.join(PROJECT_ROOT, "food_diary.db"))
 
 # Ensure the static directory exists, as Starlette expects it
 os.makedirs(STATIC_DIR, exist_ok=True)
@@ -94,6 +94,7 @@ def init_database():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             timestamp TEXT NOT NULL,
+            event_datetime TEXT,
             text TEXT,
             photo TEXT,
             synced BOOLEAN DEFAULT FALSE,
@@ -109,6 +110,12 @@ def init_database():
         cursor.execute("ALTER TABLE entries ADD COLUMN user_id INTEGER")
         # Set user_id to 1 for existing entries (temporary for migration)
         cursor.execute("UPDATE entries SET user_id = 1 WHERE user_id IS NULL")
+
+    # Check if event_datetime column exists, add it if it doesn't (migration)
+    if "event_datetime" not in columns:
+        cursor.execute("ALTER TABLE entries ADD COLUMN event_datetime TEXT")
+        # Set event_datetime to timestamp for existing entries
+        cursor.execute("UPDATE entries SET event_datetime = timestamp WHERE event_datetime IS NULL")
 
     conn.commit()
     conn.close()
@@ -315,10 +322,10 @@ async def get_entries(request: Request):
 
     cursor.execute(
         """
-        SELECT id, timestamp, text, photo, synced 
+        SELECT id, timestamp, event_datetime, text, photo, synced 
         FROM entries 
         WHERE user_id = ?
-        ORDER BY timestamp DESC
+        ORDER BY event_datetime DESC
     """,
         (user_id,),
     )
@@ -332,9 +339,10 @@ async def get_entries(request: Request):
             {
                 "id": row[0],
                 "timestamp": row[1],
-                "text": row[2],
-                "photo": row[3],
-                "synced": bool(row[4]),
+                "event_datetime": row[2],
+                "text": row[3],
+                "photo": row[4],
+                "synced": bool(row[5]),
             }
         )
 
@@ -348,6 +356,7 @@ async def create_entry(request: Request):
         user_id = request.state.user["id"]
         data = await request.json()
         timestamp = data.get("timestamp", datetime.now().isoformat())
+        event_datetime = data.get("event_datetime", timestamp)
         text = data.get("text", "")
         photo = data.get("photo")
 
@@ -356,10 +365,10 @@ async def create_entry(request: Request):
 
         cursor.execute(
             """
-            INSERT INTO entries (user_id, timestamp, text, photo, synced)
-            VALUES (?, ?, ?, ?, TRUE)
+            INSERT INTO entries (user_id, timestamp, event_datetime, text, photo, synced)
+            VALUES (?, ?, ?, ?, ?, TRUE)
         """,
-            (user_id, timestamp, text, photo),
+            (user_id, timestamp, event_datetime, text, photo),
         )
 
         entry_id = cursor.lastrowid
@@ -367,7 +376,14 @@ async def create_entry(request: Request):
         conn.close()
 
         return JSONResponse(
-            {"id": entry_id, "timestamp": timestamp, "text": text, "photo": photo, "synced": True},
+            {
+                "id": entry_id,
+                "timestamp": timestamp,
+                "event_datetime": event_datetime,
+                "text": text,
+                "photo": photo,
+                "synced": True,
+            },
             status_code=201,
         )
 
@@ -396,10 +412,16 @@ async def update_entry(request: Request):
         cursor.execute(
             """
             UPDATE entries 
-            SET text = ?, photo = ?, synced = TRUE
+            SET text = ?, photo = ?, event_datetime = COALESCE(?, event_datetime), synced = TRUE
             WHERE id = ? AND user_id = ?
         """,
-            (data.get("text", ""), data.get("photo"), entry_id, user_id),
+            (
+                data.get("text", ""),
+                data.get("photo"),
+                data.get("event_datetime"),
+                entry_id,
+                user_id,
+            ),
         )
 
         conn.commit()
