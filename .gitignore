@@ -10,3 +10,10 @@ CLAUDE.md
 nginx/ssl/*.crt
 nginx/ssl/*.key
 nginx/ssl/*.pem
+
+# CDK deployment
+cdk.out/
+cdk-outputs.json
+
+# AWS
+.aws/

@@ -1,6 +1,5 @@
 import logging
 import os
-import sqlite3
 from datetime import datetime
 
 import pypugjs
@@ -13,6 +12,8 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
+
+from .database import create_or_update_user, db, get_current_user_by_id, init_database
 
 # Load environment variables
 load_dotenv()
@@ -27,7 +28,11 @@ PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, os.pardir, os.pardir))
 
 TEMPLATES_DIR = os.path.join(PROJECT_ROOT, "templates")
 STATIC_DIR = os.path.join(PROJECT_ROOT, "static")
-DB_PATH = os.getenv("DB_PATH", os.path.join(PROJECT_ROOT, "food_diary.db"))
+
+# AWS configuration
+STATIC_BUCKET = os.getenv("STATIC_BUCKET")
+CLOUDFRONT_DOMAIN = os.getenv("CLOUDFRONT_DOMAIN")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 
 # Ensure the static directory exists, as Starlette expects it
 os.makedirs(STATIC_DIR, exist_ok=True)
@@ -69,58 +74,6 @@ else:
     raise ValueError(f"Unsupported OAuth provider: {OAUTH_PROVIDER}")
 
 
-# Initialize the database
-def init_database():
-    """Initialize the SQLite database with the users and entries tables."""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    # Create users table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            github_id INTEGER UNIQUE NOT NULL,
-            username TEXT NOT NULL,
-            name TEXT,
-            email TEXT,
-            avatar_url TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    # Create entries table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS entries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            timestamp TEXT NOT NULL,
-            event_datetime TEXT,
-            text TEXT,
-            photo TEXT,
-            synced BOOLEAN DEFAULT FALSE,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    """)
-
-    # Check if user_id column exists, add it if it doesn't (migration)
-    cursor.execute("PRAGMA table_info(entries)")
-    columns = [row[1] for row in cursor.fetchall()]
-    if "user_id" not in columns:
-        cursor.execute("ALTER TABLE entries ADD COLUMN user_id INTEGER")
-        # Set user_id to 1 for existing entries (temporary for migration)
-        cursor.execute("UPDATE entries SET user_id = 1 WHERE user_id IS NULL")
-
-    # Check if event_datetime column exists, add it if it doesn't (migration)
-    if "event_datetime" not in columns:
-        cursor.execute("ALTER TABLE entries ADD COLUMN event_datetime TEXT")
-        # Set event_datetime to timestamp for existing entries
-        cursor.execute("UPDATE entries SET event_datetime = timestamp WHERE event_datetime IS NULL")
-
-    conn.commit()
-    conn.close()
-
-
 # Initialize database on startup
 init_database()
 
@@ -129,76 +82,7 @@ init_database()
 def get_current_user(request: Request):
     """Get the current authenticated user from the session."""
     user_id = request.session.get("user_id")
-    if not user_id:
-        return None
-
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT id, github_id, username, name, email, avatar_url FROM users WHERE id = ?",
-        (user_id,),
-    )
-    row = cursor.fetchone()
-    conn.close()
-
-    if row:
-        return {
-            "id": row[0],
-            "github_id": row[1],
-            "username": row[2],
-            "name": row[3],
-            "email": row[4],
-            "avatar_url": row[5],
-        }
-    return None
-
-
-def create_or_update_user(github_user_data):
-    """Create or update a user based on GitHub user data."""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    # Check if user exists
-    cursor.execute("SELECT id FROM users WHERE github_id = ?", (github_user_data["id"],))
-    existing_user = cursor.fetchone()
-
-    if existing_user:
-        # Update existing user
-        cursor.execute(
-            """
-            UPDATE users SET 
-                username = ?, name = ?, email = ?, avatar_url = ?
-            WHERE github_id = ?
-        """,
-            (
-                github_user_data["login"],
-                github_user_data.get("name"),
-                github_user_data.get("email"),
-                github_user_data.get("avatar_url"),
-                github_user_data["id"],
-            ),
-        )
-        user_id = existing_user[0]
-    else:
-        # Create new user
-        cursor.execute(
-            """
-            INSERT INTO users (github_id, username, name, email, avatar_url)
-            VALUES (?, ?, ?, ?, ?)
-        """,
-            (
-                github_user_data["id"],
-                github_user_data["login"],
-                github_user_data.get("name"),
-                github_user_data.get("email"),
-                github_user_data.get("avatar_url"),
-            ),
-        )
-        user_id = cursor.lastrowid
-
-    conn.commit()
-    conn.close()
-    return user_id
+    return get_current_user_by_id(user_id)
 
 
 def require_auth(func):
@@ -317,34 +201,27 @@ async def get_entries(request: Request):
     """Get all entries from the database for the authenticated user."""
     user_id = request.state.user["id"]
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    cursor.execute(
+    query = (
         """
+        SELECT id, timestamp, event_datetime, text, photo, synced 
+        FROM entries 
+        WHERE user_id = %s
+        ORDER BY event_datetime DESC
+    """
+        if db.use_postgres
+        else """
         SELECT id, timestamp, event_datetime, text, photo, synced 
         FROM entries 
         WHERE user_id = ?
         ORDER BY event_datetime DESC
-    """,
-        (user_id,),
+    """
     )
 
-    rows = cursor.fetchall()
-    conn.close()
+    entries = db.execute_query(query, (user_id,))
 
-    entries = []
-    for row in rows:
-        entries.append(
-            {
-                "id": row[0],
-                "timestamp": row[1],
-                "event_datetime": row[2],
-                "text": row[3],
-                "photo": row[4],
-                "synced": bool(row[5]),
-            }
-        )
+    # Ensure synced is boolean
+    for entry in entries:
+        entry["synced"] = bool(entry["synced"])
 
     return JSONResponse(entries)
 
@@ -360,20 +237,19 @@ async def create_entry(request: Request):
         text = data.get("text", "")
         photo = data.get("photo")
 
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-
-        cursor.execute(
+        query = (
             """
             INSERT INTO entries (user_id, timestamp, event_datetime, text, photo, synced)
+            VALUES (%s, %s, %s, %s, %s, TRUE) RETURNING id
+        """
+            if db.use_postgres
+            else """
+            INSERT INTO entries (user_id, timestamp, event_datetime, text, photo, synced)
             VALUES (?, ?, ?, ?, ?, TRUE)
-        """,
-            (user_id, timestamp, event_datetime, text, photo),
+        """
         )
 
-        entry_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
+        entry_id = db.execute_update(query, (user_id, timestamp, event_datetime, text, photo))
 
         return JSONResponse(
             {
@@ -399,22 +275,34 @@ async def update_entry(request: Request):
         entry_id = request.path_params["entry_id"]
         data = await request.json()
 
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-
         # Check if entry exists and belongs to user
-        cursor.execute("SELECT id FROM entries WHERE id = ? AND user_id = ?", (entry_id, user_id))
-        if not cursor.fetchone():
-            conn.close()
+        check_query = (
+            "SELECT id FROM entries WHERE id = %s AND user_id = %s"
+            if db.use_postgres
+            else "SELECT id FROM entries WHERE id = ? AND user_id = ?"
+        )
+        existing_entries = db.execute_query(check_query, (entry_id, user_id))
+
+        if not existing_entries:
             return JSONResponse({"error": "Entry not found"}, status_code=404)
 
         # Update entry
-        cursor.execute(
+        update_query = (
             """
+            UPDATE entries 
+            SET text = %s, photo = %s, event_datetime = COALESCE(%s, event_datetime), synced = TRUE
+            WHERE id = %s AND user_id = %s
+        """
+            if db.use_postgres
+            else """
             UPDATE entries 
             SET text = ?, photo = ?, event_datetime = COALESCE(?, event_datetime), synced = TRUE
             WHERE id = ? AND user_id = ?
-        """,
+        """
+        )
+
+        db.execute_update(
+            update_query,
             (
                 data.get("text", ""),
                 data.get("photo"),
@@ -423,9 +311,6 @@ async def update_entry(request: Request):
                 user_id,
             ),
         )
-
-        conn.commit()
-        conn.close()
 
         return JSONResponse({"message": "Entry updated successfully"})
 
@@ -440,19 +325,24 @@ async def delete_entry(request: Request):
         user_id = request.state.user["id"]
         entry_id = request.path_params["entry_id"]
 
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-
         # Check if entry exists and belongs to user
-        cursor.execute("SELECT id FROM entries WHERE id = ? AND user_id = ?", (entry_id, user_id))
-        if not cursor.fetchone():
-            conn.close()
+        check_query = (
+            "SELECT id FROM entries WHERE id = %s AND user_id = %s"
+            if db.use_postgres
+            else "SELECT id FROM entries WHERE id = ? AND user_id = ?"
+        )
+        existing_entries = db.execute_query(check_query, (entry_id, user_id))
+
+        if not existing_entries:
             return JSONResponse({"error": "Entry not found"}, status_code=404)
 
         # Delete entry
-        cursor.execute("DELETE FROM entries WHERE id = ? AND user_id = ?", (entry_id, user_id))
-        conn.commit()
-        conn.close()
+        delete_query = (
+            "DELETE FROM entries WHERE id = %s AND user_id = %s"
+            if db.use_postgres
+            else "DELETE FROM entries WHERE id = ? AND user_id = ?"
+        )
+        db.execute_update(delete_query, (entry_id, user_id))
 
         return JSONResponse({"message": "Entry deleted successfully"})
 
@@ -472,8 +362,20 @@ routes = [
     Route("/api/entries", create_entry, methods=["POST"]),
     Route("/api/entries/{entry_id:int}", update_entry, methods=["PUT"]),
     Route("/api/entries/{entry_id:int}", delete_entry, methods=["DELETE"]),
-    Mount("/static", app=StaticFiles(directory=STATIC_DIR), name="static"),
 ]
+
+# Add static file serving - use S3/CloudFront in production, local files in development
+if STATIC_BUCKET and CLOUDFRONT_DOMAIN:
+    # In AWS Lambda, redirect static requests to CloudFront
+    async def static_redirect(request):
+        path = request.path_params.get("path", "")
+        cloudfront_url = f"https://{CLOUDFRONT_DOMAIN}/{path}"
+        return RedirectResponse(url=cloudfront_url, status_code=302)
+
+    routes.append(Route("/static/{path:path}", static_redirect))
+else:
+    # Local development - serve files directly
+    routes.append(Mount("/static", app=StaticFiles(directory=STATIC_DIR), name="static"))
 
 # Session middleware for authentication
 middleware = [Middleware(SessionMiddleware, secret_key=SECRET_KEY)]
