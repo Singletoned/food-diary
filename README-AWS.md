@@ -12,56 +12,49 @@ This guide covers deploying your food diary application to AWS using CDK (Cloud 
 ## Prerequisites
 
 1. **AWS CLI** configured with appropriate permissions
-2. **Node.js** (for CDK CLI)
+2. **AWS CDK** installed via homebrew: `brew install aws-cdk`
 3. **Python dependencies**: `uv pip install -e '.[cdk]'`
 
 ## Quick Deploy
 
 ```bash
-# Make sure AWS CLI is configured
-aws configure
+# Prerequisites
+aws configure              # Configure AWS CLI
+brew install aws-cdk       # Install CDK CLI
 
-# Run the deployment script
-./deploy.sh
+# Deploy to AWS
+just deploy-aws
 ```
 
 ## Manual Deployment Steps
 
-### 1. Install CDK CLI
+### 1. Install CDK Dependencies
 
 ```bash
-npm install -g aws-cdk
+just install-cdk
 ```
 
 ### 2. Bootstrap CDK (first time only)
 
 ```bash
-cdk bootstrap
+just bootstrap-aws
 ```
 
 ### 3. Deploy Infrastructure
 
 ```bash
-# Install Python dependencies
-uv pip install -e '.[cdk]'
-
-# Deploy the stack
-cdk deploy --outputs-file cdk-outputs.json
+just deploy-aws
 ```
 
-### 4. Upload Static Files
+### 4. Clean Up Resources
 
 ```bash
-# Get bucket name from outputs
-BUCKET_NAME=$(jq -r '.FoodDiaryStack.StaticBucket' cdk-outputs.json)
-
-# Upload static files
-aws s3 sync static/ s3://$BUCKET_NAME/
+just destroy-aws
 ```
 
 ### 5. Configure OAuth
 
-1. Get API URL from deployment outputs
+1. Get API URL from deployment outputs (shown after `just deploy-aws`)
 2. Update GitHub OAuth app callback URL to: `https://your-api-url/auth/callback`
 3. Set OAuth secrets in AWS Secrets Manager:
 
@@ -132,7 +125,7 @@ To avoid ongoing charges:
 
 ```bash
 # Delete all AWS resources
-cdk destroy
+just destroy-aws
 ```
 
 ## Troubleshooting

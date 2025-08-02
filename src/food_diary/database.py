@@ -27,6 +27,43 @@ class DatabaseConnection:
         self.db_url = os.getenv("DATABASE_URL")
         self.db_path = os.getenv("DB_PATH", "food_diary.db")
         self.use_postgres = bool(self.db_url and POSTGRES_AVAILABLE)
+        
+        # In AWS Lambda, get database credentials from the environment
+        if os.getenv("AWS_LAMBDA_RUNTIME") and self.use_postgres:
+            self._setup_aws_database_connection()
+
+    def _setup_aws_database_connection(self):
+        """Set up database connection using AWS Secrets Manager."""
+        try:
+            import boto3
+            import json
+            
+            # Get the secret name from RDS - it should be auto-generated
+            secret_name = os.getenv("DB_SECRET_NAME")
+            if not secret_name:
+                logger.warning("DB_SECRET_NAME not found in environment")
+                return
+                
+            # Get secret from AWS Secrets Manager
+            session = boto3.Session()
+            client = session.client('secretsmanager')
+            
+            response = client.get_secret_value(SecretId=secret_name)
+            secret = json.loads(response['SecretString'])
+            
+            # Build database URL with actual credentials
+            host = secret['host']
+            port = secret['port']
+            username = secret['username']
+            password = secret['password']
+            dbname = secret['dbname']
+            
+            self.db_url = f"postgresql://{username}:{password}@{host}:{port}/{dbname}"
+            logger.info(f"Successfully configured database connection to {host}")
+            
+        except Exception as e:
+            logger.error(f"Failed to setup AWS database connection: {e}")
+            self.use_postgres = False
 
     def get_connection(self):
         """Get database connection based on environment."""

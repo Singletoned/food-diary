@@ -17,3 +17,22 @@ cdk-outputs.json
 
 # AWS
 .aws/
+
+# Lambda build artifacts
+lambda_package/
+layer/
+simple_lambda/
+*.zip
+
+# CDK temporary files
+cdk.context.json
+cdk-outputs-temp.json
+lambda-env.json
+
+# Test/debug files
+lambda_handler_simple.py
+lambda_handler_test.py
+requirements-simple.txt
+
+# Local database
+food_diary.db

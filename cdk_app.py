@@ -13,12 +13,12 @@ from aws_cdk import (
     RemovalPolicy,
     Stack,
 )
-from aws_cdk import aws_apigatewayv2_alpha as apigatewayv2
-from aws_cdk import aws_apigatewayv2_integrations_alpha as integrations
+from aws_cdk import aws_apigateway as apigateway
 from aws_cdk import aws_cloudfront as cloudfront
 from aws_cdk import aws_cloudfront_origins as origins
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_lambda as _lambda
+from aws_cdk import BundlingOptions
 from aws_cdk import aws_rds as rds
 from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_secretsmanager as secretsmanager
@@ -60,9 +60,9 @@ class FoodDiaryStack(Stack):
             allow_all_outbound=False,
         )
 
-        # Allow Lambda to access RDS
+        # Allow Lambda to access RDS from anywhere (Lambda will be outside VPC)
         db_security_group.add_ingress_rule(
-            peer=ec2.Peer.any_ipv4(),  # Lambda functions use NAT gateway IPs
+            peer=ec2.Peer.any_ipv4(),
             connection=ec2.Port.tcp(5432),
             description="PostgreSQL access from Lambda",
         )
@@ -74,10 +74,13 @@ class FoodDiaryStack(Stack):
             engine=rds.DatabaseClusterEngine.aurora_postgres(
                 version=rds.AuroraPostgresEngineVersion.VER_15_4
             ),
+            writer=rds.ClusterInstance.serverless_v2("writer", 
+                scale_with_writer=False
+            ),
             serverless_v2_min_capacity=0.5,  # Minimum for cost optimization
             serverless_v2_max_capacity=1.0,  # Low max for low traffic
             vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED),
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
             security_groups=[db_security_group],
             default_database_name="fooddiary",
             removal_policy=RemovalPolicy.DESTROY,  # Be careful in production
@@ -124,23 +127,23 @@ class FoodDiaryStack(Stack):
             ),
         )
 
-        # Lambda function
+        # Lambda function using container image deployment
         lambda_function = _lambda.Function(
             self,
             "FoodDiaryFunction",
-            runtime=_lambda.Runtime.PYTHON_3_11,
-            handler="lambda_handler.handler",
-            code=_lambda.Code.from_asset("."),  # Current directory
+            runtime=_lambda.Runtime.FROM_IMAGE,
+            handler=_lambda.Handler.FROM_IMAGE,
+            architecture=_lambda.Architecture.X86_64,  # Specify x86_64 architecture
+            code=_lambda.Code.from_asset_image(".", file="Dockerfile.lambda"),
             timeout=Duration.seconds(30),
             memory_size=512,  # Moderate memory for cost optimization
             environment={
                 "DATABASE_URL": f"postgresql://{db_cluster.cluster_endpoint.hostname}:5432/fooddiary",
+                "DB_SECRET_NAME": db_cluster.secret.secret_name,
                 "STATIC_BUCKET": static_bucket.bucket_name,
                 "CLOUDFRONT_DOMAIN": distribution.distribution_domain_name,
                 "BASE_URL": "https://api.food-diary.example.com",  # Update this
             },
-            vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
         )
 
         # Grant Lambda access to RDS credentials
@@ -152,37 +155,27 @@ class FoodDiaryStack(Stack):
         # Grant Lambda access to S3 bucket
         static_bucket.grant_read_write(lambda_function)
 
-        # API Gateway HTTP API (cheaper than REST API)
-        api = apigatewayv2.HttpApi(
+        # API Gateway REST API
+        api = apigateway.RestApi(
             self,
             "FoodDiaryApi",
             description="Food Diary API",
-            cors_preflight=apigatewayv2.CorsPreflightOptions(
-                allow_origins=["*"],
-                allow_methods=[apigatewayv2.CorsHttpMethod.ANY],
+            default_cors_preflight_options=apigateway.CorsOptions(
+                allow_origins=apigateway.Cors.ALL_ORIGINS,
+                allow_methods=apigateway.Cors.ALL_METHODS,
                 allow_headers=["*"],
             ),
         )
 
         # Lambda integration
-        lambda_integration = integrations.HttpLambdaIntegration(
-            "LambdaIntegration",
-            lambda_function,
-        )
+        lambda_integration = apigateway.LambdaIntegration(lambda_function)
 
-        # Add catch-all route
-        api.add_routes(
-            path="/{proxy+}",
-            methods=[apigatewayv2.HttpMethod.ANY],
-            integration=lambda_integration,
-        )
+        # Add proxy resource for all routes
+        proxy_resource = api.root.add_resource("{proxy+}")
+        proxy_resource.add_method("ANY", lambda_integration)
 
         # Root route
-        api.add_routes(
-            path="/",
-            methods=[apigatewayv2.HttpMethod.ANY],
-            integration=lambda_integration,
-        )
+        api.root.add_method("ANY", lambda_integration)
 
         # Output important values
         from aws_cdk import CfnOutput
@@ -190,7 +183,7 @@ class FoodDiaryStack(Stack):
         CfnOutput(
             self,
             "ApiUrl",
-            value=api.api_endpoint,
+            value=api.url,
             description="API Gateway URL",
         )
 

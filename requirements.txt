@@ -1,0 +1,10 @@
+starlette
+uvicorn[standard]
+pypugjs
+authlib
+httpx
+itsdangerous
+python-dotenv
+mangum
+psycopg2-binary
+boto3
