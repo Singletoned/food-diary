@@ -10,8 +10,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import boto3
-from botocore.exceptions import ClientError
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +30,7 @@ class S3Storage:
         if endpoint_url:
             client_kwargs["endpoint_url"] = endpoint_url
             client_kwargs["config"] = Config(
-                signature_version="s3v4",
-                s3={"addressing_style": "path"}
+                signature_version="s3v4", s3={"addressing_style": "path"}
             )
 
         self.s3_client = boto3.client("s3", **client_kwargs)

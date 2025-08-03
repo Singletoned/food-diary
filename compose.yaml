@@ -6,8 +6,8 @@ services:
       dockerfile: Dockerfile
     container_name: food-diary-localstack
     ports:
-      - "4566:4566"  # LocalStack main port
-      - "4510-4559:4510-4559"  # External service port range
+      - "4566:4566" # LocalStack main port
+      - "4510-4559:4510-4559" # External service port range
     env_file:
       - ./envs/localstack/.env
     volumes:
@@ -41,7 +41,16 @@ services:
         condition: service_healthy
     networks:
       - food-diary-network
-    command: ["uvicorn", "src.food_diary.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command:
+      [
+        "uvicorn",
+        "src.food_diary.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
 
   # Mock OAuth Server for testing
   mock-oauth:

@@ -40,4 +40,3 @@ deploy-aws: bootstrap-aws
 
 destroy-aws:
     cdk destroy
-
