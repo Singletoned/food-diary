@@ -13,7 +13,7 @@ from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from .database import create_or_update_user, db, get_current_user_by_id, init_database
+from .s3_storage import get_storage
 
 # Load environment variables
 load_dotenv()
@@ -74,15 +74,16 @@ else:
     raise ValueError(f"Unsupported OAuth provider: {OAUTH_PROVIDER}")
 
 
-# Initialize database on startup
-init_database()
+# No initialization needed for S3 storage
 
 
 # Authentication helper functions
 def get_current_user(request: Request):
     """Get the current authenticated user from the session."""
     user_id = request.session.get("user_id")
-    return get_current_user_by_id(user_id)
+    if not user_id:
+        return None
+    return get_storage().get_user_by_id(user_id)
 
 
 def require_auth(func):
@@ -157,8 +158,15 @@ async def auth_callback(request: Request):
             resp = await oauth.github.get("user", token=token)
             github_user = resp.json()
 
-        # Create or update user in our database
-        user_id = create_or_update_user(github_user)
+        # Create or update user in S3 storage
+        user = get_storage().create_or_update_user(
+            github_id=github_user["id"],
+            username=github_user["login"],
+            name=github_user.get("name"),
+            email=github_user.get("email"),
+            avatar_url=github_user.get("avatar_url")
+        )
+        user_id = user["id"]
 
         # Store user ID in session
         request.session["user_id"] = user_id
@@ -198,37 +206,15 @@ async def user_info(request: Request):
 # API endpoints
 @require_auth
 async def get_entries(request: Request):
-    """Get all entries from the database for the authenticated user."""
+    """Get all entries from S3 storage for the authenticated user."""
     user_id = request.state.user["id"]
-
-    query = (
-        """
-        SELECT id, timestamp, event_datetime, text, photo, synced 
-        FROM entries 
-        WHERE user_id = %s
-        ORDER BY event_datetime DESC
-    """
-        if db.use_postgres
-        else """
-        SELECT id, timestamp, event_datetime, text, photo, synced 
-        FROM entries 
-        WHERE user_id = ?
-        ORDER BY event_datetime DESC
-    """
-    )
-
-    entries = db.execute_query(query, (user_id,))
-
-    # Ensure synced is boolean
-    for entry in entries:
-        entry["synced"] = bool(entry["synced"])
-
+    entries = get_storage().get_entries(user_id)
     return JSONResponse(entries)
 
 
 @require_auth
 async def create_entry(request: Request):
-    """Create a new entry in the database for the authenticated user."""
+    """Create a new entry in S3 storage for the authenticated user."""
     try:
         user_id = request.state.user["id"]
         data = await request.json()
@@ -237,31 +223,15 @@ async def create_entry(request: Request):
         text = data.get("text", "")
         photo = data.get("photo")
 
-        query = (
-            """
-            INSERT INTO entries (user_id, timestamp, event_datetime, text, photo, synced)
-            VALUES (%s, %s, %s, %s, %s, TRUE) RETURNING id
-        """
-            if db.use_postgres
-            else """
-            INSERT INTO entries (user_id, timestamp, event_datetime, text, photo, synced)
-            VALUES (?, ?, ?, ?, ?, TRUE)
-        """
+        entry = get_storage().create_entry(
+            user_id=user_id,
+            timestamp=timestamp,
+            event_datetime=event_datetime,
+            text=text,
+            photo=photo
         )
 
-        entry_id = db.execute_update(query, (user_id, timestamp, event_datetime, text, photo))
-
-        return JSONResponse(
-            {
-                "id": entry_id,
-                "timestamp": timestamp,
-                "event_datetime": event_datetime,
-                "text": text,
-                "photo": photo,
-                "synced": True,
-            },
-            status_code=201,
-        )
+        return JSONResponse(entry, status_code=201)
 
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
@@ -272,45 +242,19 @@ async def update_entry(request: Request):
     """Update an existing entry for the authenticated user."""
     try:
         user_id = request.state.user["id"]
-        entry_id = request.path_params["entry_id"]
+        entry_id = int(request.path_params["entry_id"])
         data = await request.json()
 
-        # Check if entry exists and belongs to user
-        check_query = (
-            "SELECT id FROM entries WHERE id = %s AND user_id = %s"
-            if db.use_postgres
-            else "SELECT id FROM entries WHERE id = ? AND user_id = ?"
+        success = get_storage().update_entry(
+            user_id=user_id,
+            entry_id=entry_id,
+            text=data.get("text"),
+            photo=data.get("photo"),
+            event_datetime=data.get("event_datetime")
         )
-        existing_entries = db.execute_query(check_query, (entry_id, user_id))
 
-        if not existing_entries:
+        if not success:
             return JSONResponse({"error": "Entry not found"}, status_code=404)
-
-        # Update entry
-        update_query = (
-            """
-            UPDATE entries 
-            SET text = %s, photo = %s, event_datetime = COALESCE(%s, event_datetime), synced = TRUE
-            WHERE id = %s AND user_id = %s
-        """
-            if db.use_postgres
-            else """
-            UPDATE entries 
-            SET text = ?, photo = ?, event_datetime = COALESCE(?, event_datetime), synced = TRUE
-            WHERE id = ? AND user_id = ?
-        """
-        )
-
-        db.execute_update(
-            update_query,
-            (
-                data.get("text", ""),
-                data.get("photo"),
-                data.get("event_datetime"),
-                entry_id,
-                user_id,
-            ),
-        )
 
         return JSONResponse({"message": "Entry updated successfully"})
 
@@ -320,29 +264,15 @@ async def update_entry(request: Request):
 
 @require_auth
 async def delete_entry(request: Request):
-    """Delete an entry from the database for the authenticated user."""
+    """Delete an entry from S3 storage for the authenticated user."""
     try:
         user_id = request.state.user["id"]
-        entry_id = request.path_params["entry_id"]
+        entry_id = int(request.path_params["entry_id"])
 
-        # Check if entry exists and belongs to user
-        check_query = (
-            "SELECT id FROM entries WHERE id = %s AND user_id = %s"
-            if db.use_postgres
-            else "SELECT id FROM entries WHERE id = ? AND user_id = ?"
-        )
-        existing_entries = db.execute_query(check_query, (entry_id, user_id))
+        success = get_storage().delete_entry(user_id=user_id, entry_id=entry_id)
 
-        if not existing_entries:
+        if not success:
             return JSONResponse({"error": "Entry not found"}, status_code=404)
-
-        # Delete entry
-        delete_query = (
-            "DELETE FROM entries WHERE id = %s AND user_id = %s"
-            if db.use_postgres
-            else "DELETE FROM entries WHERE id = ? AND user_id = ?"
-        )
-        db.execute_update(delete_query, (entry_id, user_id))
 
         return JSONResponse({"message": "Entry deleted successfully"})
 

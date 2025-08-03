@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 AWS CDK app for deploying the food diary application.
-Optimized for low traffic with serverless architecture.
+Optimized for low traffic with S3-based storage.
 """
 
 import os
@@ -16,85 +16,25 @@ from aws_cdk import (
 from aws_cdk import aws_apigateway as apigateway
 from aws_cdk import aws_cloudfront as cloudfront
 from aws_cdk import aws_cloudfront_origins as origins
-from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_lambda as _lambda
-from aws_cdk import BundlingOptions
-from aws_cdk import aws_rds as rds
 from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_secretsmanager as secretsmanager
 from constructs import Construct
 
 
 class FoodDiaryStack(Stack):
-    """Main stack for the food diary application."""
+    """Main stack for the food diary application using S3 for storage."""
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # Create VPC for RDS
-        vpc = ec2.Vpc(
+        # S3 bucket for both static files and data storage
+        data_bucket = s3.Bucket(
             self,
-            "FoodDiaryVPC",
-            max_azs=2,  # Minimal for RDS
-            nat_gateways=0,  # Cost optimization - no NAT gateways needed
-            subnet_configuration=[
-                ec2.SubnetConfiguration(
-                    subnet_type=ec2.SubnetType.PUBLIC,
-                    name="Public",
-                    cidr_mask=24,
-                ),
-                ec2.SubnetConfiguration(
-                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
-                    name="Database",
-                    cidr_mask=24,
-                ),
-            ],
-        )
-
-        # Security group for RDS
-        db_security_group = ec2.SecurityGroup(
-            self,
-            "DatabaseSecurityGroup",
-            vpc=vpc,
-            description="Security group for RDS database",
-            allow_all_outbound=False,
-        )
-
-        # Allow Lambda to access RDS from anywhere (Lambda will be outside VPC)
-        db_security_group.add_ingress_rule(
-            peer=ec2.Peer.any_ipv4(),
-            connection=ec2.Port.tcp(5432),
-            description="PostgreSQL access from Lambda",
-        )
-
-        # RDS Serverless v2 PostgreSQL database
-        db_cluster = rds.DatabaseCluster(
-            self,
-            "FoodDiaryDB",
-            engine=rds.DatabaseClusterEngine.aurora_postgres(
-                version=rds.AuroraPostgresEngineVersion.VER_15_4
-            ),
-            writer=rds.ClusterInstance.serverless_v2("writer", 
-                scale_with_writer=False
-            ),
-            serverless_v2_min_capacity=0.5,  # Minimum for cost optimization
-            serverless_v2_max_capacity=1.0,  # Low max for low traffic
-            vpc=vpc,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
-            security_groups=[db_security_group],
-            default_database_name="fooddiary",
-            removal_policy=RemovalPolicy.DESTROY,  # Be careful in production
-            backup=rds.BackupProps(
-                retention=Duration.days(7),  # Minimal backup retention
-            ),
-        )
-
-        # S3 bucket for static files
-        static_bucket = s3.Bucket(
-            self,
-            "FoodDiaryStatic",
-            bucket_name=f"food-diary-static-{self.account}-{self.region}",
-            public_read_access=True,
+            "FoodDiaryBucket",
+            bucket_name=f"food-diary-{self.account}-{self.region}",
+            versioned=True,  # Enable versioning for data backup
+            public_read_access=True,  # For static files only
             block_public_access=s3.BlockPublicAccess(
                 block_public_acls=False,
                 ignore_public_acls=False,
@@ -109,7 +49,7 @@ class FoodDiaryStack(Stack):
             self,
             "FoodDiaryDistribution",
             default_behavior=cloudfront.BehaviorOptions(
-                origin=origins.S3Origin(static_bucket),
+                origin=origins.S3Origin(data_bucket),
                 cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             ),
@@ -138,22 +78,18 @@ class FoodDiaryStack(Stack):
             timeout=Duration.seconds(30),
             memory_size=512,  # Moderate memory for cost optimization
             environment={
-                "DATABASE_URL": f"postgresql://{db_cluster.cluster_endpoint.hostname}:5432/fooddiary",
-                "DB_SECRET_NAME": db_cluster.secret.secret_name,
-                "STATIC_BUCKET": static_bucket.bucket_name,
+                "DATA_BUCKET": data_bucket.bucket_name,
+                "STATIC_BUCKET": data_bucket.bucket_name,  # Same bucket for both
                 "CLOUDFRONT_DOMAIN": distribution.distribution_domain_name,
                 "BASE_URL": "https://api.food-diary.example.com",  # Update this
             },
         )
 
-        # Grant Lambda access to RDS credentials
-        db_cluster.secret.grant_read(lambda_function)
-
         # Grant Lambda access to OAuth secrets
         oauth_secrets.grant_read(lambda_function)
 
-        # Grant Lambda access to S3 bucket
-        static_bucket.grant_read_write(lambda_function)
+        # Grant Lambda full access to S3 bucket (for both data and static files)
+        data_bucket.grant_read_write(lambda_function)
 
         # API Gateway REST API
         api = apigateway.RestApi(
@@ -189,16 +125,9 @@ class FoodDiaryStack(Stack):
 
         CfnOutput(
             self,
-            "DatabaseEndpoint",
-            value=db_cluster.cluster_endpoint.hostname,
-            description="RDS cluster endpoint",
-        )
-
-        CfnOutput(
-            self,
-            "StaticBucket",
-            value=static_bucket.bucket_name,
-            description="S3 bucket for static files",
+            "DataBucket",
+            value=data_bucket.bucket_name,
+            description="S3 bucket for data and static files",
         )
 
         CfnOutput(
@@ -219,7 +148,7 @@ FoodDiaryStack(
     app,
     "FoodDiaryStack",
     env=Environment(account=account, region=region),
-    description="Food diary application with Lambda, RDS Serverless, and S3",
+    description="Food diary application with Lambda and S3 storage",
 )
 
 app.synth()
