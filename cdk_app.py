@@ -44,16 +44,7 @@ class FoodDiaryStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
         )
 
-        # CloudFront distribution for static files
-        distribution = cloudfront.Distribution(
-            self,
-            "FoodDiaryDistribution",
-            default_behavior=cloudfront.BehaviorOptions(
-                origin=origins.S3Origin(data_bucket),
-                cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
-                viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-            ),
-        )
+        # Note: CloudFront distribution will be configured after API Gateway is created
 
         # Secrets for OAuth credentials
         oauth_secrets = secretsmanager.Secret(
@@ -67,7 +58,7 @@ class FoodDiaryStack(Stack):
             ),
         )
 
-        # Lambda function using container image deployment
+        # Lambda function using container image deployment (CloudFront domain will be added later)
         lambda_function = _lambda.Function(
             self,
             "FoodDiaryFunction",
@@ -80,8 +71,7 @@ class FoodDiaryStack(Stack):
             environment={
                 "DATA_BUCKET": data_bucket.bucket_name,
                 "STATIC_BUCKET": data_bucket.bucket_name,  # Same bucket for both
-                "CLOUDFRONT_DOMAIN": distribution.distribution_domain_name,
-                "BASE_URL": "https://api.food-diary.example.com",  # Update this
+                "BASE_URL": "https://api.food-diary.example.com",  # Will be updated after CloudFront
             },
         )
 
@@ -112,6 +102,32 @@ class FoodDiaryStack(Stack):
 
         # Root route (handles requests to the root path "/")
         api.root.add_method("ANY", lambda_integration)
+
+        # CloudFront distribution for both static files and API
+        distribution = cloudfront.Distribution(
+            self,
+            "FoodDiaryDistribution",
+            default_behavior=cloudfront.BehaviorOptions(
+                origin=origins.HttpOrigin(
+                    domain_name=api.rest_api_id + ".execute-api." + self.region + ".amazonaws.com",
+                    origin_path="/prod",
+                ),
+                cache_policy=cloudfront.CachePolicy.CACHING_DISABLED,  # Disable caching for API
+                viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                allowed_methods=cloudfront.AllowedMethods.ALLOW_ALL,
+                cached_methods=cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+            ),
+            additional_behaviors={
+                "/static/*": cloudfront.BehaviorOptions(
+                    origin=origins.S3Origin(data_bucket),
+                    cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
+                    viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                ),
+            },
+        )
+
+        # Update Lambda environment with CloudFront domain
+        lambda_function.add_environment("CLOUDFRONT_DOMAIN", distribution.distribution_domain_name)
 
         # Output important values
         from aws_cdk import CfnOutput
