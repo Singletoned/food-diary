@@ -164,7 +164,7 @@ async def auth_callback(request: Request):
             username=github_user["login"],
             name=github_user.get("name"),
             email=github_user.get("email"),
-            avatar_url=github_user.get("avatar_url")
+            avatar_url=github_user.get("avatar_url"),
         )
         user_id = user["id"]
 
@@ -228,7 +228,7 @@ async def create_entry(request: Request):
             timestamp=timestamp,
             event_datetime=event_datetime,
             text=text,
-            photo=photo
+            photo=photo,
         )
 
         return JSONResponse(entry, status_code=201)
@@ -250,7 +250,7 @@ async def update_entry(request: Request):
             entry_id=entry_id,
             text=data.get("text"),
             photo=data.get("photo"),
-            event_datetime=data.get("event_datetime")
+            event_datetime=data.get("event_datetime"),
         )
 
         if not success:

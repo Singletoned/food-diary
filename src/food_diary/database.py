@@ -35,8 +35,9 @@ class DatabaseConnection:
     def _setup_aws_database_connection(self):
         """Set up database connection using AWS Secrets Manager."""
         try:
-            import boto3
             import json
+
+            import boto3
             
             # Get the secret name from RDS - it should be auto-generated
             secret_name = os.getenv("DB_SECRET_NAME")
