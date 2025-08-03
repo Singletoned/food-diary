@@ -112,11 +112,17 @@ def render_pug_template(template_name: str, context: dict = None) -> HTMLRespons
     with open(template_path, "r") as f:
         pug_source = f.read()
 
-    # pypugjs compiler options can be passed here if needed
-    # For example, to use a specific Jinja2 environment or filters
-    # compiler = pypugjs.Compiler(source=pug_source, ...)
-    # html = compiler.compile()
-    # For simplicity, using simple_convert which uses default compiler settings
+    # Replace template variables in the pug source before compilation
+    import json
+
+    for key, value in context.items():
+        if key == "is_authenticated":
+            pug_source = pug_source.replace(f"#{{{key}}}", str(value).lower())
+        elif key == "user":
+            # Convert user dict to JSON for JavaScript, or null if None
+            json_value = json.dumps(value) if value else "null"
+            pug_source = pug_source.replace(f"#{{{key}}}", json_value)
+
     html_content = pypugjs.simple_convert(pug_source)
 
     return HTMLResponse(html_content)
@@ -127,7 +133,8 @@ async def homepage(request):
     Serves the homepage by rendering the index.pug template.
     """
     user = get_current_user(request)
-    context = {"request": request, "user": user}
+    is_authenticated = user is not None
+    context = {"request": request, "user": user, "is_authenticated": is_authenticated}
     return render_pug_template("index.pug", context)
 
 

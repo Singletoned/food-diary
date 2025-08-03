@@ -15,16 +15,18 @@ html(lang="en")
     script(src="/static/app.js")
   body(x-data="foodDiaryApp()", x-init="initApp()")
     // Login page for unauthenticated users
-    .login-container(x-show="!isAuthenticated")
-      .login-card
+    if !is_authenticated
+      .login-container
+        .login-card
         h1 Food Diary
         p Welcome! Please sign in with your GitHub account to continue.
         button.login-button(@click="login") 
           | 🐙 Sign in with GitHub
 
-    // Main app for authenticated users  
-    .app-container(x-show="isAuthenticated")
-      header
+    // Main app for authenticated users
+    if is_authenticated
+      .app-container
+        header
         .header-top
           h1 Food Diary
           .user-info
@@ -135,13 +137,10 @@ html(lang="en")
           photoPreview: null,
           entries: [],
           syncStatus: "idle", // idle, syncing, error
-          isAuthenticated: false,
-          userInfo: null,
+          isAuthenticated: #{ is_authenticated },
+          userInfo: #{ user },
 
           async initApp() {
-            // Check authentication status first
-            await this.checkAuth();
-
             if (!this.isAuthenticated) {
               return; // Don't initialize app data if not authenticated
             }
@@ -315,19 +314,6 @@ html(lang="en")
             }
           },
 
-          async checkAuth() {
-            try {
-              const response = await fetch("/api/user");
-              const data = await response.json();
-              this.isAuthenticated = data.authenticated;
-              this.userInfo = data.user || null;
-            } catch (error) {
-              console.error("Auth check failed:", error);
-              this.isAuthenticated = false;
-              this.userInfo = null;
-            }
-          },
-
           async login() {
             window.location.href = "/auth/login";
           },
@@ -335,9 +321,6 @@ html(lang="en")
           async logout() {
             try {
               await fetch("/auth/logout", { method: "POST" });
-              this.isAuthenticated = false;
-              this.userInfo = null;
-              this.entries = [];
               window.location.href = "/";
             } catch (error) {
               console.error("Logout failed:", error);
