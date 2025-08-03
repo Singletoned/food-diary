@@ -3,11 +3,11 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Copy requirements and install dependencies
-COPY docker/mock-oauth/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY docker/mock-oauth/app.py .
+COPY app.py .
 
 # Expose port
 EXPOSE 8080

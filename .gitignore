@@ -36,3 +36,8 @@ requirements-simple.txt
 
 # Local database
 food_diary.db
+
+# Docker/LocalStack local development
+.env.local
+localstack-data/
+docker-compose.override.yml

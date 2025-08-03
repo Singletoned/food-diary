@@ -3,7 +3,7 @@ format *files:
     taidy .
 
 serve:
-    uvicorn src.food_diary.main:app --reload --host 0.0.0.0 --port 9000
+    docker compose up
 
 test:
     pytest tests/test_main.py
@@ -40,3 +40,4 @@ deploy-aws: bootstrap-aws
 
 destroy-aws:
     cdk destroy
+

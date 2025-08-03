@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional
 import boto3
 from botocore.exceptions import ClientError
 
+from .local_config import get_local_boto3_client, is_local_development
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,8 +25,13 @@ class S3Storage:
         if not self.bucket_name:
             raise ValueError("DATA_BUCKET environment variable not set")
 
-        self.s3_client = boto3.client("s3")
-        logger.info(f"S3Storage initialized with bucket: {self.bucket_name}")
+        # Use LocalStack client if in local development mode
+        if is_local_development():
+            self.s3_client = get_local_boto3_client("s3")
+            logger.info(f"S3Storage initialized with LocalStack for bucket: {self.bucket_name}")
+        else:
+            self.s3_client = boto3.client("s3")
+            logger.info(f"S3Storage initialized with AWS for bucket: {self.bucket_name}")
 
     def _get_user_profile_key(self, user_id: int) -> str:
         """Get S3 key for user profile."""
