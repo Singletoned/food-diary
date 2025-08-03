@@ -103,14 +103,14 @@ class FoodDiaryStack(Stack):
             ),
         )
 
-        # Lambda integration
-        lambda_integration = apigateway.LambdaIntegration(lambda_function)
+        # Lambda proxy integration (ensures proper event format for Mangum)
+        lambda_integration = apigateway.LambdaIntegration(lambda_function, proxy=True)
 
-        # Add proxy resource for all routes
+        # Add proxy resource for all routes (this handles ALL paths)
         proxy_resource = api.root.add_resource("{proxy+}")
         proxy_resource.add_method("ANY", lambda_integration)
 
-        # Root route
+        # Root route (handles requests to the root path "/")
         api.root.add_method("ANY", lambda_integration)
 
         # Output important values

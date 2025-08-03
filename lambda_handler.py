@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 os.environ.setdefault("AWS_LAMBDA_RUNTIME", "1")
 
 # Log environment variables for debugging
-logger.info(f"Environment variables: DATABASE_URL exists: {'DATABASE_URL' in os.environ}")
+logger.info(f"DATA_BUCKET exists: {'DATA_BUCKET' in os.environ}")
+logger.info(f"DATA_BUCKET value: {os.environ.get('DATA_BUCKET', 'NOT_SET')}")
 logger.info(f"AWS_LAMBDA_RUNTIME: {os.environ.get('AWS_LAMBDA_RUNTIME')}")
 
 try:
