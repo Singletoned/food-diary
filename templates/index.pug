@@ -15,18 +15,16 @@ html(lang="en")
     script(src="/static/app.js")
   body(x-data="foodDiaryApp()", x-init="initApp()")
     // Login page for unauthenticated users
-    if !is_authenticated
-      .login-container
-        .login-card
+    .login-container(x-show="!isAuthenticated")
+      .login-card
         h1 Food Diary
         p Welcome! Please sign in with your GitHub account to continue.
         button.login-button(@click="login") 
           | 🐙 Sign in with GitHub
 
     // Main app for authenticated users
-    if is_authenticated
-      .app-container
-        header
+    .app-container(x-show="isAuthenticated")
+      header
         .header-top
           h1 Food Diary
           .user-info
@@ -52,76 +50,76 @@ html(lang="en")
             .online-status(:class="{ offline: !navigator.onLine }")
               span(x-show="navigator.onLine") 🟢 Online
               span(x-show="!navigator.onLine") 🔴 Offline
-      nav.nav-tabs
-        button.nav-tab(
-          :class="{ active: currentView === 'entry' }",
-          @click="currentView = 'entry'"
-        ) New Entry
-        button.nav-tab(
-          :class="{ active: currentView === 'history' }",
-          @click="currentView = 'history'"
-        ) History
+        nav.nav-tabs
+          button.nav-tab(
+            :class="{ active: currentView === 'entry' }",
+            @click="currentView = 'entry'"
+          ) New Entry
+          button.nav-tab(
+            :class="{ active: currentView === 'history' }",
+            @click="currentView = 'history'"
+          ) History
 
-      .view-container(x-show="currentView === 'entry'")
-        h2 Add New Entry
-        .food-diary-form
-        .form-group
-          label.form-label(for="note") Note:
-          textarea#note.form-textarea(
-            x-model="note",
-            rows="4",
-            placeholder="Enter your food notes..."
-          )
+        .view-container(x-show="currentView === 'entry'")
+          h2 Add New Entry
+          .food-diary-form
+            .form-group
+              label.form-label(for="note") Note:
+              textarea#note.form-textarea(
+                x-model="note",
+                rows="4",
+                placeholder="Enter your food notes..."
+              )
 
-        .form-group
-          .checkbox-container
-            input#custom-datetime-checkbox.form-checkbox(
-              type="checkbox",
-              x-model="useCustomDatetime"
-            )
-            label.form-label(for="custom-datetime-checkbox") Set custom date/time
-
-          .datetime-input-container(x-show="useCustomDatetime")
-            label.form-label(for="event-datetime") Event Date & Time:
-            input#event-datetime.form-datetime-input(
-              type="datetime-local",
-              x-model="eventDatetime"
-            )
-
-        .form-group
-          label.form-label(for="photo") Photo:
-          input#photo.form-file-input(
-            type="file",
-            accept="image/*",
-            @change="handlePhotoUpload($event)"
-          )
-
-        .form-group(x-show="photoPreview")
-          h3 Photo Preview:
-          img.photo-preview(:src="photoPreview", alt="Photo preview")
-
-        .form-group
-          button.save-button(
-            @click="saveEntry",
-            :disabled="!note && !photoBase64"
-          ) Save Entry
-
-      .view-container(x-show="currentView === 'history'")
-        h2 Entry History
-        .history-container
-          template(x-for="entry in entries", :key="entry.id")
-            .entry
-              .entry-header
-                .entry-timestamp(
-                  x-text="formatTimestamp(entry.event_datetime)"
+            .form-group
+              .checkbox-container
+                input#custom-datetime-checkbox.form-checkbox(
+                  type="checkbox",
+                  x-model="useCustomDatetime"
                 )
-                button.delete-button(@click="deleteEntry(entry.id)") ×
-              .entry-content
-                p.entry-text(x-text="entry.text")
-                .entry-photo(x-show="entry.photo")
-                  img(:src="entry.photo", alt="Food photo")
-          .empty-history(x-show="entries.length === 0")
-            p No entries yet. Add your first food diary entry!
+                label.form-label(for="custom-datetime-checkbox") Set custom date/time
+
+              .datetime-input-container(x-show="useCustomDatetime")
+                label.form-label(for="event-datetime") Event Date & Time:
+                input#event-datetime.form-datetime-input(
+                  type="datetime-local",
+                  x-model="eventDatetime"
+                )
+
+            .form-group
+              label.form-label(for="photo") Photo:
+              input#photo.form-file-input(
+                type="file",
+                accept="image/*",
+                @change="handlePhotoUpload($event)"
+              )
+
+            .form-group(x-show="photoPreview")
+              h3 Photo Preview:
+              img.photo-preview(:src="photoPreview", alt="Photo preview")
+
+            .form-group
+              button.save-button(
+                @click="saveEntry",
+                :disabled="!note && !photoBase64"
+              ) Save Entry
+
+        .view-container(x-show="currentView === 'history'")
+          h2 Entry History
+          .history-container
+            template(x-for="entry in entries", :key="entry.id")
+              .entry
+                .entry-header
+                  .entry-timestamp(
+                    x-text="formatTimestamp(entry.event_datetime)"
+                  )
+                  button.delete-button(@click="deleteEntry(entry.id)") ×
+                .entry-content
+                  p.entry-text(x-text="entry.text")
+                  .entry-photo(x-show="entry.photo")
+                    img(:src="entry.photo", alt="Food photo")
+            .empty-history(x-show="entries.length === 0")
+              p No entries yet. Add your first food diary entry!
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
@@ -315,16 +313,16 @@ html(lang="en")
           },
 
           async login() {
-            window.location.href = "/auth/login";
+            window.location.href = "/prod/auth/login";
           },
 
           async logout() {
             try {
-              await fetch("/auth/logout", { method: "POST" });
-              window.location.href = "/";
+              await fetch("/prod/auth/logout", { method: "POST" });
+              window.location.href = "/prod/";
             } catch (error) {
               console.error("Logout failed:", error);
-              window.location.href = "/auth/logout";
+              window.location.href = "/prod/auth/logout";
             }
           },
 

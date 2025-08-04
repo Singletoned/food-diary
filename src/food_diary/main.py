@@ -112,18 +112,31 @@ def render_pug_template(template_name: str, context: dict = None) -> HTMLRespons
     with open(template_path, "r") as f:
         pug_source = f.read()
 
-    # Replace template variables in the pug source before compilation
+    # Replace template variables in the pug source for JavaScript injection
     import json
 
+    # Prepare variables for JavaScript section only
+    js_replacements = {}
     for key, value in context.items():
         if key == "is_authenticated":
-            pug_source = pug_source.replace(f"#{{{key}}}", str(value).lower())
+            js_replacements[f"#{{ {key} }}"] = str(value).lower()
+            js_replacements[f"#{{{key}}}"] = str(value).lower()
         elif key == "user":
             # Convert user dict to JSON for JavaScript, or null if None
             json_value = json.dumps(value) if value else "null"
-            pug_source = pug_source.replace(f"#{{{key}}}", json_value)
+            js_replacements[f"#{{ {key} }}"] = json_value
+            js_replacements[f"#{{{key}}}"] = json_value
 
-    html_content = pypugjs.simple_convert(pug_source)
+    # Apply JavaScript replacements
+    for pattern, replacement in js_replacements.items():
+        pug_source = pug_source.replace(pattern, replacement)
+
+    # Compile Pug with context variables for conditionals
+    try:
+        html_content = pypugjs.simple_convert(pug_source, **context)
+    except Exception:
+        # Fallback to simple conversion if context passing fails
+        html_content = pypugjs.simple_convert(pug_source)
 
     return HTMLResponse(html_content)
 
@@ -178,17 +191,17 @@ async def auth_callback(request: Request):
         # Store user ID in session
         request.session["user_id"] = user_id
 
-        return RedirectResponse(url="/", status_code=302)
+        return RedirectResponse(url="/prod/", status_code=302)
 
     except Exception as e:
         logging.error(f"OAuth callback error: {e}")
-        return RedirectResponse(url="/?error=auth_failed", status_code=302)
+        return RedirectResponse(url="/prod/?error=auth_failed", status_code=302)
 
 
 async def logout(request: Request):
     """Log out the user."""
     request.session.clear()
-    return RedirectResponse(url="/", status_code=302)
+    return RedirectResponse(url="/prod/", status_code=302)
 
 
 async def user_info(request: Request):

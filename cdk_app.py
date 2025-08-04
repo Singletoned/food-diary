@@ -20,6 +20,10 @@ from aws_cdk import aws_lambda as _lambda
 from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_secretsmanager as secretsmanager
 from constructs import Construct
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class FoodDiaryStack(Stack):
@@ -71,7 +75,7 @@ class FoodDiaryStack(Stack):
             environment={
                 "DATA_BUCKET": data_bucket.bucket_name,
                 "STATIC_BUCKET": data_bucket.bucket_name,  # Same bucket for both
-                "BASE_URL": "https://api.food-diary.example.com",  # Will be updated after CloudFront
+                # BASE_URL will be set to API Gateway URL after creation
             },
         )
 
@@ -126,8 +130,19 @@ class FoodDiaryStack(Stack):
             },
         )
 
-        # Update Lambda environment with CloudFront domain
+        # Get GitHub OAuth credentials from .env file (already loaded)
+        github_client_id = os.environ.get("GITHUB_CLIENT_ID", "your-github-client-id")
+        github_client_secret = os.environ.get("GITHUB_CLIENT_SECRET", "your-github-client-secret")
+        secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+
+        # Update Lambda environment with URLs and OAuth config
         lambda_function.add_environment("CLOUDFRONT_DOMAIN", distribution.distribution_domain_name)
+        # Construct BASE_URL manually to avoid circular dependency
+        base_url = f"https://{api.rest_api_id}.execute-api.{self.region}.amazonaws.com/prod"
+        lambda_function.add_environment("BASE_URL", base_url)
+        lambda_function.add_environment("SECRET_KEY", secret_key)
+        lambda_function.add_environment("GITHUB_CLIENT_ID", github_client_id)
+        lambda_function.add_environment("GITHUB_CLIENT_SECRET", github_client_secret)
 
         # Output important values
         from aws_cdk import CfnOutput
@@ -151,6 +166,13 @@ class FoodDiaryStack(Stack):
             "CloudFrontDomain",
             value=distribution.distribution_domain_name,
             description="CloudFront distribution domain",
+        )
+
+        CfnOutput(
+            self,
+            "GitHubOAuthSetup",
+            value=f"Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables, then redeploy. Callback URL: {base_url}/auth/callback",
+            description="GitHub OAuth setup instructions",
         )
 
 

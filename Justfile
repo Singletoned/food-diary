@@ -29,7 +29,7 @@ deploy-aws: bootstrap-aws
 
     # Upload static files if deployment succeeded
     if [ -f cdk-outputs.json ]; then
-        BUCKET=$(jq -r '.FoodDiaryStack.StaticBucket' cdk-outputs.json)
+        BUCKET=$(jq -r '.FoodDiaryStack.DataBucket' cdk-outputs.json)
         API_URL=$(jq -r '.FoodDiaryStack.ApiUrl' cdk-outputs.json)
         echo "📁 Uploading static files..."
         aws s3 sync static/ s3://$BUCKET/ --delete
