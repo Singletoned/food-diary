@@ -137,6 +137,7 @@ html(lang="en")
           syncStatus: "idle", // idle, syncing, error
           isAuthenticated: #{ is_authenticated },
           userInfo: #{ user },
+          apiStagePath: #{ api_stage_path },
 
           async initApp() {
             if (!this.isAuthenticated) {
@@ -313,16 +314,16 @@ html(lang="en")
           },
 
           async login() {
-            window.location.href = "/prod/auth/login";
+            window.location.href = `${this.apiStagePath}/auth/login`;
           },
 
           async logout() {
             try {
-              await fetch("/prod/auth/logout", { method: "POST" });
-              window.location.href = "/prod/";
+              await fetch(`${this.apiStagePath}/auth/logout`, { method: "POST" });
+              window.location.href = `${this.apiStagePath}/`;
             } catch (error) {
               console.error("Logout failed:", error);
-              window.location.href = "/prod/auth/logout";
+              window.location.href = `${this.apiStagePath}/auth/logout`;
             }
           },
 

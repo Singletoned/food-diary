@@ -33,6 +33,7 @@ STATIC_DIR = os.path.join(PROJECT_ROOT, "static")
 STATIC_BUCKET = os.getenv("STATIC_BUCKET")
 CLOUDFRONT_DOMAIN = os.getenv("CLOUDFRONT_DOMAIN")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+API_STAGE_PATH = os.getenv("API_STAGE_PATH", "")
 
 # Ensure the static directory exists, as Starlette expects it
 os.makedirs(STATIC_DIR, exist_ok=True)
@@ -126,6 +127,10 @@ def render_pug_template(template_name: str, context: dict = None) -> HTMLRespons
             json_value = json.dumps(value) if value else "null"
             js_replacements[f"#{{ {key} }}"] = json_value
             js_replacements[f"#{{{key}}}"] = json_value
+        elif key == "api_stage_path":
+            # Pass stage path as string for JavaScript
+            js_replacements[f"#{{ {key} }}"] = f'"{value}"'
+            js_replacements[f"#{{{key}}}"] = f'"{value}"'
 
     # Apply JavaScript replacements
     for pattern, replacement in js_replacements.items():
@@ -147,7 +152,12 @@ async def homepage(request):
     """
     user = get_current_user(request)
     is_authenticated = user is not None
-    context = {"request": request, "user": user, "is_authenticated": is_authenticated}
+    context = {
+        "request": request,
+        "user": user,
+        "is_authenticated": is_authenticated,
+        "api_stage_path": API_STAGE_PATH,
+    }
     return render_pug_template("index.pug", context)
 
 
@@ -191,17 +201,17 @@ async def auth_callback(request: Request):
         # Store user ID in session
         request.session["user_id"] = user_id
 
-        return RedirectResponse(url="/prod/", status_code=302)
+        return RedirectResponse(url=f"{API_STAGE_PATH}/", status_code=302)
 
     except Exception as e:
         logging.error(f"OAuth callback error: {e}")
-        return RedirectResponse(url="/prod/?error=auth_failed", status_code=302)
+        return RedirectResponse(url=f"{API_STAGE_PATH}/?error=auth_failed", status_code=302)
 
 
 async def logout(request: Request):
     """Log out the user."""
     request.session.clear()
-    return RedirectResponse(url="/prod/", status_code=302)
+    return RedirectResponse(url=f"{API_STAGE_PATH}/", status_code=302)
 
 
 async def user_info(request: Request):
