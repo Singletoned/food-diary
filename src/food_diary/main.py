@@ -324,18 +324,8 @@ routes = [
     Route("/api/entries/{entry_id:int}", delete_entry, methods=["DELETE"]),
 ]
 
-# Add static file serving - use S3/CloudFront in production, local files in development
-if STATIC_BUCKET and CLOUDFRONT_DOMAIN:
-    # In AWS Lambda, redirect static requests to CloudFront
-    async def static_redirect(request):
-        path = request.path_params.get("path", "")
-        cloudfront_url = f"https://{CLOUDFRONT_DOMAIN}/{path}"
-        return RedirectResponse(url=cloudfront_url, status_code=302)
-
-    routes.append(Route("/static/{path:path}", static_redirect))
-else:
-    # Local development - serve files directly
-    routes.append(Mount("/static", app=StaticFiles(directory=STATIC_DIR), name="static"))
+# Add static file serving - serve files directly from Lambda
+routes.append(Mount("/static", app=StaticFiles(directory=STATIC_DIR), name="static"))
 
 # Session middleware for authentication
 middleware = [Middleware(SessionMiddleware, secret_key=SECRET_KEY)]

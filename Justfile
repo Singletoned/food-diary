@@ -32,7 +32,7 @@ deploy-aws: bootstrap-aws
         BUCKET=$(jq -r '.FoodDiaryStack.DataBucket' cdk-outputs.json)
         API_URL=$(jq -r '.FoodDiaryStack.ApiUrl' cdk-outputs.json)
         echo "📁 Uploading static files..."
-        aws s3 sync static/ s3://$BUCKET/ --delete
+        aws s3 sync static/ s3://$BUCKET/static/ --delete
         echo "🎉 Deployment complete!"
         echo "🌐 API URL: $API_URL"
         echo "⚙️ Update GitHub OAuth callback to: ${API_URL}/auth/callback"
