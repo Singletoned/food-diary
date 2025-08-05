@@ -116,7 +116,7 @@ def render_pug_template(template_name: str, context: dict = None) -> HTMLRespons
     # Replace template variables in the pug source for JavaScript injection
     import json
 
-    # Prepare variables for JavaScript section only
+    # Prepare variables for JavaScript section and HTML attributes
     js_replacements = {}
     for key, value in context.items():
         if key == "is_authenticated":
@@ -128,9 +128,10 @@ def render_pug_template(template_name: str, context: dict = None) -> HTMLRespons
             js_replacements[f"#{{ {key} }}"] = json_value
             js_replacements[f"#{{{key}}}"] = json_value
         elif key == "api_stage_path":
-            # Pass stage path as string for JavaScript
+            # Pass stage path as string for JavaScript (with quotes)
             js_replacements[f"#{{ {key} }}"] = f'"{value}"'
-            js_replacements[f"#{{{key}}}"] = f'"{value}"'
+            # Pass stage path as plain value for HTML attributes (without quotes)
+            js_replacements[f"#{{{key}}}"] = str(value)
 
     # Apply JavaScript replacements
     for pattern, replacement in js_replacements.items():

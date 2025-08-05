@@ -3,8 +3,8 @@ html(lang="en")
   head
     meta(charset="UTF-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title Food Diary Entry
-    link(rel="stylesheet", href="/static/styles.css")
+    title Chompix - Smart Food Diary
+    link(rel="stylesheet", href="#{api_stage_path}/static/styles.css")
     script(
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js",
       defer
@@ -12,12 +12,12 @@ html(lang="en")
     script(
       src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
     )
-    script(src="/static/app.js")
+    script(src="#{api_stage_path}/static/app.js")
   body(x-data="foodDiaryApp()", x-init="initApp()")
     // Login page for unauthenticated users
     .login-container(x-show="!isAuthenticated")
       .login-card
-        h1 Food Diary
+        h1 Chompix
         p Welcome! Please sign in with your GitHub account to continue.
         button.login-button(@click="login") 
           | 🐙 Sign in with GitHub
@@ -26,7 +26,7 @@ html(lang="en")
     .app-container(x-show="isAuthenticated")
       header
         .header-top
-          h1 Food Diary
+          .logo Chompix
           .user-info
             img.user-avatar(
               x-show="userInfo?.avatar_url",
@@ -50,76 +50,77 @@ html(lang="en")
             .online-status(:class="{ offline: !navigator.onLine }")
               span(x-show="navigator.onLine") 🟢 Online
               span(x-show="!navigator.onLine") 🔴 Offline
-        nav.nav-tabs
-          button.nav-tab(
-            :class="{ active: currentView === 'entry' }",
-            @click="currentView = 'entry'"
-          ) New Entry
-          button.nav-tab(
-            :class="{ active: currentView === 'history' }",
-            @click="currentView = 'history'"
-          ) History
 
-        .view-container(x-show="currentView === 'entry'")
-          h2 Add New Entry
-          .food-diary-form
-            .form-group
-              label.form-label(for="note") Note:
-              textarea#note.form-textarea(
-                x-model="note",
-                rows="4",
-                placeholder="Enter your food notes..."
+      nav.nav-tabs
+        button.nav-tab(
+          :class="{ active: currentView === 'entry' }",
+          @click="currentView = 'entry'"
+        ) New Entry
+        button.nav-tab(
+          :class="{ active: currentView === 'history' }",
+          @click="currentView = 'history'"
+        ) History
+
+      .view-container(x-show="currentView === 'entry'")
+        h2 Add New Entry
+        .food-diary-form
+          .form-group
+            label.form-label(for="note") Note:
+            textarea#note.form-textarea(
+              x-model="note",
+              rows="4",
+              placeholder="Enter your food notes..."
+            )
+
+          .form-group
+            .checkbox-container
+              input#custom-datetime-checkbox.form-checkbox(
+                type="checkbox",
+                x-model="useCustomDatetime"
+              )
+              label.form-label(for="custom-datetime-checkbox") Set custom date/time
+
+            .datetime-input-container(x-show="useCustomDatetime")
+              label.form-label(for="event-datetime") Event Date & Time:
+              input#event-datetime.form-datetime-input(
+                type="datetime-local",
+                x-model="eventDatetime"
               )
 
-            .form-group
-              .checkbox-container
-                input#custom-datetime-checkbox.form-checkbox(
-                  type="checkbox",
-                  x-model="useCustomDatetime"
+          .form-group
+            label.form-label(for="photo") Photo:
+            input#photo.form-file-input(
+              type="file",
+              accept="image/*",
+              @change="handlePhotoUpload($event)"
+            )
+
+          .form-group(x-show="photoPreview")
+            h3 Photo Preview:
+            img.photo-preview(:src="photoPreview", alt="Photo preview")
+
+          .form-group
+            button.save-button(
+              @click="saveEntry",
+              :disabled="!note && !photoBase64"
+            ) Save Entry
+
+      .view-container(x-show="currentView === 'history'")
+        h2 Entry History
+        .history-container
+          template(x-for="entry in entries", :key="entry.id")
+            .entry
+              .entry-header
+                .entry-timestamp(
+                  x-text="formatTimestamp(entry.event_datetime)"
                 )
-                label.form-label(for="custom-datetime-checkbox") Set custom date/time
-
-              .datetime-input-container(x-show="useCustomDatetime")
-                label.form-label(for="event-datetime") Event Date & Time:
-                input#event-datetime.form-datetime-input(
-                  type="datetime-local",
-                  x-model="eventDatetime"
-                )
-
-            .form-group
-              label.form-label(for="photo") Photo:
-              input#photo.form-file-input(
-                type="file",
-                accept="image/*",
-                @change="handlePhotoUpload($event)"
-              )
-
-            .form-group(x-show="photoPreview")
-              h3 Photo Preview:
-              img.photo-preview(:src="photoPreview", alt="Photo preview")
-
-            .form-group
-              button.save-button(
-                @click="saveEntry",
-                :disabled="!note && !photoBase64"
-              ) Save Entry
-
-        .view-container(x-show="currentView === 'history'")
-          h2 Entry History
-          .history-container
-            template(x-for="entry in entries", :key="entry.id")
-              .entry
-                .entry-header
-                  .entry-timestamp(
-                    x-text="formatTimestamp(entry.event_datetime)"
-                  )
-                  button.delete-button(@click="deleteEntry(entry.id)") ×
-                .entry-content
-                  p.entry-text(x-text="entry.text")
-                  .entry-photo(x-show="entry.photo")
-                    img(:src="entry.photo", alt="Food photo")
-            .empty-history(x-show="entries.length === 0")
-              p No entries yet. Add your first food diary entry!
+                button.delete-button(@click="deleteEntry(entry.id)") ×
+              .entry-content
+                p.entry-text(x-text="entry.text")
+                .entry-photo(x-show="entry.photo")
+                  img(:src="entry.photo", alt="Food photo")
+          .empty-history(x-show="entries.length === 0")
+            p No entries yet. Add your first food diary entry!
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
