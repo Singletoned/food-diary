@@ -59,7 +59,7 @@ services:
       dockerfile: Dockerfile
     container_name: food-diary-oauth
     ports:
-      - "8081:8080"
+      - "8080:8080"
     networks:
       - food-diary-network
     environment:

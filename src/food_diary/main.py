@@ -64,11 +64,17 @@ if OAUTH_PROVIDER == "github":
 elif OAUTH_PROVIDER == "mock":
     # Mock OAuth for testing
     mock_oauth_base = os.getenv("MOCK_OAUTH_URL", "http://mock-oauth:8080")
+    # For browser redirects, always use localhost so the browser can access it
+    mock_oauth_public = os.getenv("MOCK_OAUTH_PUBLIC_URL", "http://localhost:8080")
     oauth.register(
         name="github",  # Keep same name for compatibility
         client_id="mock-client-id",
         client_secret="mock-client-secret",
-        server_metadata_url=f"{mock_oauth_base}/.well-known/openid_configuration",
+        # Manually configure endpoints instead of using server metadata
+        # to control which URLs are used for browser redirects
+        access_token_url=f"{mock_oauth_base}/oauth/token",
+        authorize_url=f"{mock_oauth_public}/oauth/authorize",
+        api_base_url=f"{mock_oauth_base}/",
         client_kwargs={"scope": "user:email"},
     )
 else:
