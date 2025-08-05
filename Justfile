@@ -3,6 +3,7 @@ format *files:
     taidy .
 
 serve:
+    docker compose build
     docker compose up
 
 test:
