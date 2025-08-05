@@ -4,6 +4,10 @@ html(lang="en")
     meta(charset="UTF-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
     title Chompix - Smart Food Diary
+    link(
+      rel="stylesheet",
+      href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css"
+    )
     link(rel="stylesheet", href="#{api_stage_path}/static/styles.css")
     script(
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js",
@@ -15,112 +19,167 @@ html(lang="en")
     script(src="#{api_stage_path}/static/app.js")
   body(x-data="foodDiaryApp()", x-init="initApp()")
     // Login page for unauthenticated users
-    .login-container(x-show="!isAuthenticated")
-      .login-card
-        h1 Chompix
-        p Welcome! Please sign in with your GitHub account to continue.
-        button.login-button(@click="login") 
-          | 🐙 Sign in with GitHub
+    section.hero.is-fullheight(x-show="!isAuthenticated")
+      .hero-body
+        .container.has-text-centered
+          .column.is-4.is-offset-4
+            .box
+              h1.title.is-2 Chompix
+              p.subtitle Welcome! Please sign in with your GitHub account to continue.
+              button.button.is-primary.is-large.is-fullwidth(@click="login")
+                span.icon
+                  | 🐙
+                span Sign in with GitHub
 
     // Main app for authenticated users
-    .app-container(x-show="isAuthenticated")
-      header
-        .header-top
-          .logo Chompix
-          .user-info
-            img.user-avatar(
-              x-show="userInfo?.avatar_url",
-              :src="userInfo?.avatar_url",
-              :alt="userInfo?.username"
-            )
-            span.user-name(x-text="userInfo?.name || userInfo?.username")
-            button.logout-button(@click="logout") Logout
-          .sync-controls
-            button.sync-button(
-              @click="syncWithServer",
-              :disabled="syncStatus === 'syncing'"
-            )
-              span(x-show="syncStatus === 'idle'") 🔄 Sync
-              span(x-show="syncStatus === 'syncing'") ⏳ Syncing...
-              span(x-show="syncStatus === 'error'") ❌ Sync Error
-            button.export-button(
-              @click="exportData",
-              :disabled="entries.length === 0"
-            ) 📦 Export
-            .online-status(:class="{ offline: !navigator.onLine }")
-              span(x-show="navigator.onLine") 🟢 Online
-              span(x-show="!navigator.onLine") 🔴 Offline
+    .container.is-fluid(x-show="isAuthenticated")
+      nav.navbar.is-primary(role="navigation")
+        .navbar-brand
+          .navbar-item
+            h1.title.is-4.has-text-white Chompix
+        .navbar-menu
+          .navbar-start
+          .navbar-end
+            .navbar-item
+              .field.is-grouped
+                p.control
+                  button.button.is-success.is-small(
+                    @click="syncWithServer",
+                    :disabled="syncStatus === 'syncing'"
+                  )
+                    span.icon.is-small
+                      span(x-show="syncStatus === 'idle'") 🔄
+                      span(x-show="syncStatus === 'syncing'") ⏳
+                      span(x-show="syncStatus === 'error'") ❌
+                    span(x-show="syncStatus === 'idle'") Sync
+                    span(x-show="syncStatus === 'syncing'") Syncing...
+                    span(x-show="syncStatus === 'error'") Error
+                p.control
+                  button.button.is-info.is-small(
+                    @click="exportData",
+                    :disabled="entries.length === 0"
+                  )
+                    span.icon.is-small
+                      | 📦
+                    span Export
+                p.control
+                  .tag(:class="navigator.onLine ? 'is-success' : 'is-danger'")
+                    span(x-show="navigator.onLine") 🟢 Online
+                    span(x-show="!navigator.onLine") 🔴 Offline
+            .navbar-item.has-dropdown.is-hoverable
+              a.navbar-link.has-text-white
+                figure.image.is-24x24.mr-2(x-show="userInfo?.avatar_url")
+                  img.is-rounded(
+                    :src="userInfo?.avatar_url",
+                    :alt="userInfo?.username"
+                  )
+                span(x-text="userInfo?.name || userInfo?.username")
+              .navbar-dropdown.is-right
+                a.navbar-item(@click="logout") Logout
 
-      nav.nav-tabs
-        button.nav-tab(
-          :class="{ active: currentView === 'entry' }",
-          @click="currentView = 'entry'"
-        ) New Entry
-        button.nav-tab(
-          :class="{ active: currentView === 'history' }",
-          @click="currentView = 'history'"
-        ) History
+      .section.py-4
+        .tabs.is-centered.is-boxed
+          ul
+            li(:class="{ 'is-active': currentView === 'entry' }")
+              a(@click="currentView = 'entry'")
+                span.icon.is-small
+                  | ✏️
+                span New Entry
+            li(:class="{ 'is-active': currentView === 'history' }")
+              a(@click="currentView = 'history'")
+                span.icon.is-small
+                  | 📚
+                span History
 
-      .view-container(x-show="currentView === 'entry'")
-        h2 Add New Entry
-        .food-diary-form
-          .form-group
-            label.form-label(for="note") Note:
-            textarea#note.form-textarea(
-              x-model="note",
-              rows="4",
-              placeholder="Enter your food notes..."
-            )
+      .section(x-show="currentView === 'entry'")
+        .container
+          .columns.is-centered
+            .column.is-8
+              .box
+                h2.title.is-4 Add New Entry
+                .field
+                  label.label(for="note") Note:
+                  .control
+                    textarea#note.textarea(
+                      x-model="note",
+                      rows="4",
+                      placeholder="Enter your food notes..."
+                    )
 
-          .form-group
-            .checkbox-container
-              input#custom-datetime-checkbox.form-checkbox(
-                type="checkbox",
-                x-model="useCustomDatetime"
-              )
-              label.form-label(for="custom-datetime-checkbox") Set custom date/time
+                .field
+                  .control
+                    label.checkbox
+                      input#custom-datetime-checkbox(
+                        type="checkbox",
+                        x-model="useCustomDatetime"
+                      )
+                      |
+                      | Set custom date/time
 
-            .datetime-input-container(x-show="useCustomDatetime")
-              label.form-label(for="event-datetime") Event Date & Time:
-              input#event-datetime.form-datetime-input(
-                type="datetime-local",
-                x-model="eventDatetime"
-              )
+                  .field(x-show="useCustomDatetime")
+                    label.label(for="event-datetime") Event Date & Time:
+                    .control
+                      input#event-datetime.input(
+                        type="datetime-local",
+                        x-model="eventDatetime"
+                      )
 
-          .form-group
-            label.form-label(for="photo") Photo:
-            input#photo.form-file-input(
-              type="file",
-              accept="image/*",
-              @change="handlePhotoUpload($event)"
-            )
+                .field
+                  label.label(for="photo") Photo:
+                  .file.is-boxed
+                    label.file-label
+                      input#photo.file-input(
+                        type="file",
+                        accept="image/*",
+                        @change="handlePhotoUpload($event)"
+                      )
+                      span.file-cta
+                        span.file-icon
+                          | 📷
+                        span.file-label Choose a file...
 
-          .form-group(x-show="photoPreview")
-            h3 Photo Preview:
-            img.photo-preview(:src="photoPreview", alt="Photo preview")
+                .field(x-show="photoPreview")
+                  label.label Photo Preview:
+                  .control
+                    figure.image.is-256x256
+                      img(:src="photoPreview", alt="Photo preview")
 
-          .form-group
-            button.save-button(
-              @click="saveEntry",
-              :disabled="!note && !photoBase64"
-            ) Save Entry
+                .field
+                  .control
+                    button.button.is-success.is-large.is-fullwidth(
+                      @click="saveEntry",
+                      :disabled="!note && !photoBase64"
+                    )
+                      span.icon
+                        | 💾
+                      span Save Entry
 
-      .view-container(x-show="currentView === 'history'")
-        h2 Entry History
-        .history-container
-          template(x-for="entry in entries", :key="entry.id")
-            .entry
-              .entry-header
-                .entry-timestamp(
-                  x-text="formatTimestamp(entry.event_datetime)"
-                )
-                button.delete-button(@click="deleteEntry(entry.id)") ×
-              .entry-content
-                p.entry-text(x-text="entry.text")
-                .entry-photo(x-show="entry.photo")
-                  img(:src="entry.photo", alt="Food photo")
-          .empty-history(x-show="entries.length === 0")
-            p No entries yet. Add your first food diary entry!
+      .section(x-show="currentView === 'history'")
+        .container
+          h2.title.is-4 Entry History
+          .columns.is-multiline
+            template(x-for="entry in entries", :key="entry.id")
+              .column.is-12
+                .card
+                  .card-header
+                    .card-header-title
+                      span.icon.mr-2
+                        | 📅
+                      span(x-text="formatTimestamp(entry.event_datetime)")
+                    .card-header-icon
+                      button.delete.is-small(@click="deleteEntry(entry.id)")
+                  .card-content(x-show="entry.text")
+                    .content
+                      p(x-text="entry.text")
+                  .card-image(x-show="entry.photo")
+                    figure.image
+                      img(:src="entry.photo", alt="Food photo")
+          .notification.is-info.has-text-centered(
+            x-show="entries.length === 0"
+          )
+            span.icon.is-large
+              | 📝
+            p.is-size-5 No entries yet. Add your first food diary entry!
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
