@@ -32,17 +32,17 @@ html(lang="en")
                 span Sign in with GitHub
 
     // Main app for authenticated users
-    .container.is-fluid(x-show="isAuthenticated")
-      nav.navbar.is-primary(role="navigation")
-        .navbar-brand
-          .navbar-item
-            h1.title.is-4.has-text-white Chompix
-        .navbar-menu
-          .navbar-start
-          .navbar-end
+    div(x-show="isAuthenticated")
+      nav.navbar.is-dark(role="navigation")
+        .container
+          .navbar-brand
             .navbar-item
-              .field.is-grouped
-                p.control
+              h1.title.is-4.has-text-white Chompix
+          .navbar-menu
+            .navbar-start
+            .navbar-end
+              .navbar-item
+                .buttons
                   button.button.is-success.is-small(
                     @click="syncWithServer",
                     :disabled="syncStatus === 'syncing'"
@@ -54,7 +54,6 @@ html(lang="en")
                     span(x-show="syncStatus === 'idle'") Sync
                     span(x-show="syncStatus === 'syncing'") Syncing...
                     span(x-show="syncStatus === 'error'") Error
-                p.control
                   button.button.is-info.is-small(
                     @click="exportData",
                     :disabled="entries.length === 0"
@@ -62,37 +61,36 @@ html(lang="en")
                     span.icon.is-small
                       | 📦
                     span Export
-                p.control
                   .tag(:class="navigator.onLine ? 'is-success' : 'is-danger'")
                     span(x-show="navigator.onLine") 🟢 Online
                     span(x-show="!navigator.onLine") 🔴 Offline
-            .navbar-item.has-dropdown.is-hoverable
-              a.navbar-link.has-text-white
-                figure.image.is-24x24.mr-2(x-show="userInfo?.avatar_url")
-                  img.is-rounded(
-                    :src="userInfo?.avatar_url",
-                    :alt="userInfo?.username"
-                  )
-                span(x-text="userInfo?.name || userInfo?.username")
-              .navbar-dropdown.is-right
-                a.navbar-item(@click="logout") Logout
+              .navbar-item.has-dropdown.is-hoverable
+                a.navbar-link.has-text-white
+                  figure.image.is-24x24.mr-2(x-show="userInfo?.avatar_url")
+                    img.is-rounded(
+                      :src="userInfo?.avatar_url",
+                      :alt="userInfo?.username"
+                    )
+                  span(x-text="userInfo?.name || userInfo?.username")
+                .navbar-dropdown.is-right
+                  a.navbar-item(@click="logout") Logout
 
-      .section.py-4
-        .tabs.is-centered.is-boxed
-          ul
-            li(:class="{ 'is-active': currentView === 'entry' }")
-              a(@click="currentView = 'entry'")
-                span.icon.is-small
-                  | ✏️
-                span New Entry
-            li(:class="{ 'is-active': currentView === 'history' }")
-              a(@click="currentView = 'history'")
-                span.icon.is-small
-                  | 📚
-                span History
+      .container
+        .section.py-4
+          .tabs.is-centered.is-boxed
+            ul
+              li(:class="{ 'is-active': currentView === 'entry' }")
+                a(@click="currentView = 'entry'")
+                  span.icon.is-small
+                    | ✏️
+                  span New Entry
+              li(:class="{ 'is-active': currentView === 'history' }")
+                a(@click="currentView = 'history'")
+                  span.icon.is-small
+                    | 📚
+                  span History
 
-      .section(x-show="currentView === 'entry'")
-        .container
+        .section(x-show="currentView === 'entry'")
           .columns.is-centered
             .column.is-8
               .box
@@ -154,8 +152,7 @@ html(lang="en")
                         | 💾
                       span Save Entry
 
-      .section(x-show="currentView === 'history'")
-        .container
+        .section(x-show="currentView === 'history'")
           h2.title.is-4 Entry History
           .columns.is-multiline
             template(x-for="entry in entries", :key="entry.id")

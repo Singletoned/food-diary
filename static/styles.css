@@ -49,17 +49,21 @@
     box-shadow: 0 8px 16px rgba(10, 10, 10, 0.1);
   }
 
-  .navbar-item .field.is-grouped {
+  .navbar-item .buttons {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .navbar-item .field.is-grouped .control {
+  .navbar-item .buttons .button {
     margin-bottom: 0.5rem;
   }
 
   .tabs ul {
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  .navbar-item .buttons .tag {
+    margin-top: 0.5rem;
   }
 }
