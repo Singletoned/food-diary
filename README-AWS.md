@@ -22,9 +22,16 @@ This guide covers deploying your food diary application to AWS using CDK (Cloud 
 aws configure              # Configure AWS CLI
 brew install aws-cdk       # Install CDK CLI
 
+# IMPORTANT: Set OAuth credentials before deployment
+export GITHUB_CLIENT_ID="your_github_client_id"
+export GITHUB_CLIENT_SECRET="your_github_client_secret"
+export SECRET_KEY="your_secure_random_secret_key"
+
 # Deploy to AWS
 just deploy-aws
 ```
+
+⚠️ **Important**: You must set the GitHub OAuth environment variables before deployment, or the application will not work properly.
 
 ## Manual Deployment Steps
 

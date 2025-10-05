@@ -22,8 +22,8 @@ from aws_cdk import aws_secretsmanager as secretsmanager
 from constructs import Construct
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file in parent directory
+load_dotenv("../.env")
 
 
 class FoodDiaryStack(Stack):
@@ -69,7 +69,7 @@ class FoodDiaryStack(Stack):
             runtime=_lambda.Runtime.FROM_IMAGE,
             handler=_lambda.Handler.FROM_IMAGE,
             architecture=_lambda.Architecture.X86_64,  # Specify x86_64 architecture
-            code=_lambda.Code.from_asset_image(".", file="Dockerfile.lambda"),
+            code=_lambda.Code.from_asset_image("..", file="infrastructure/Dockerfile.lambda"),
             timeout=Duration.seconds(30),
             memory_size=512,  # Moderate memory for cost optimization
             environment={
@@ -173,7 +173,10 @@ class FoodDiaryStack(Stack):
         CfnOutput(
             self,
             "GitHubOAuthSetup",
-            value=f"Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables, then redeploy. Callback URL: {base_url}/auth/callback",
+            value=(
+                f"Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables, "
+                f"then redeploy. Callback URL: {base_url}/auth/callback"
+            ),
             description="GitHub OAuth setup instructions",
         )
 

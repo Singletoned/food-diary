@@ -5,15 +5,14 @@ FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.11
 RUN yum update -y && yum install -y gcc
 
 # Copy requirements and install dependencies in Linux environment
-COPY requirements.txt ${LAMBDA_TASK_ROOT}/
+COPY ../requirements.txt ${LAMBDA_TASK_ROOT}/
 RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
 
 # Copy application code
-COPY src/ ${LAMBDA_TASK_ROOT}/src/
-COPY templates/ ${LAMBDA_TASK_ROOT}/templates/
-COPY static/ ${LAMBDA_TASK_ROOT}/static/
+COPY ../src/ ${LAMBDA_TASK_ROOT}/src/
+COPY ../templates/ ${LAMBDA_TASK_ROOT}/templates/
+COPY ../static/ ${LAMBDA_TASK_ROOT}/static/
 COPY lambda_handler.py ${LAMBDA_TASK_ROOT}/
-COPY lambda_handler_test.py ${LAMBDA_TASK_ROOT}/
 
 # Fix file permissions
 RUN chmod -R 755 ${LAMBDA_TASK_ROOT}/src/

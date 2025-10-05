@@ -1,5 +1,6 @@
 {
   "app": "python cdk_app.py",
+  "outdir": "../build/cdk.out",
   "watch": {
     "include": ["**"],
     "exclude": [

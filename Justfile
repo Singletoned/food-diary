@@ -19,19 +19,19 @@ test-e2e-compose:
         food-diary-tests
 
 bootstrap-aws:
-    cdk bootstrap --quiet
+    cd infrastructure && cdk bootstrap --quiet
 
 deploy-aws: bootstrap-aws
     #!/usr/bin/env bash
     set -e
     echo "🏗️ Deploying to AWS..."
 
-    cdk deploy --require-approval never --outputs-file cdk-outputs.json
+    cd infrastructure && cdk deploy --require-approval never --outputs-file ../build/cdk-outputs.json
 
     # Upload static files if deployment succeeded
-    if [ -f cdk-outputs.json ]; then
-        BUCKET=$(jq -r '.FoodDiaryStack.DataBucket' cdk-outputs.json)
-        API_URL=$(jq -r '.FoodDiaryStack.ApiUrl' cdk-outputs.json)
+    if [ -f build/cdk-outputs.json ]; then
+        BUCKET=$(jq -r '.FoodDiaryStack.DataBucket' build/cdk-outputs.json)
+        API_URL=$(jq -r '.FoodDiaryStack.ApiUrl' build/cdk-outputs.json)
         echo "📁 Uploading static files..."
         aws s3 sync static/ s3://$BUCKET/static/ --delete
         echo "🎉 Deployment complete!"
@@ -40,4 +40,7 @@ deploy-aws: bootstrap-aws
     fi
 
 destroy-aws:
-    cdk destroy
+    cd infrastructure && cdk destroy
+
+clean:
+    rm -rf build/ food_diary.db

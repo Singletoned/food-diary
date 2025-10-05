@@ -34,6 +34,29 @@ The local setup includes:
    - Mock OAuth: http://localhost:8080/health
    - LocalStack Dashboard: http://localhost:4566/\_localstack/health
 
+## Running Locally (Outside Docker)
+
+For local development without Docker:
+
+1. **Set up environment variables:**
+
+   ```bash
+   cp .env.local .env
+   ```
+
+2. **Start LocalStack and Mock OAuth in Docker:**
+
+   ```bash
+   docker compose up localstack mock-oauth
+   ```
+
+3. **Run the application locally:**
+   ```bash
+   uvicorn src.food_diary.main:app --reload
+   ```
+
+This configuration will correctly redirect to `localhost:8080` for OAuth instead of the Docker service name.
+
 ## Services Overview
 
 ### LocalStack (Port 4566)
