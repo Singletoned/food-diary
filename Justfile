@@ -19,14 +19,14 @@ test-e2e-compose:
         food-diary-tests
 
 bootstrap-aws:
-    cd infrastructure && cdk bootstrap --quiet
+    cd infrastructure && cdk bootstrap --quiet --output /tmp/cdk-out
 
 deploy-aws: bootstrap-aws
     #!/usr/bin/env bash
     set -e
     echo "🏗️ Deploying to AWS..."
 
-    cd infrastructure && cdk deploy --require-approval never --outputs-file ../build/cdk-outputs.json
+    cd infrastructure && cdk deploy --require-approval never --outputs-file ../build/cdk-outputs.json --output /tmp/cdk-out
 
     # Upload static files if deployment succeeded
     if [ -f build/cdk-outputs.json ]; then
@@ -40,7 +40,7 @@ deploy-aws: bootstrap-aws
     fi
 
 destroy-aws:
-    cd infrastructure && cdk destroy
+    cd infrastructure && cdk destroy --output /tmp/cdk-out
 
 clean:
     rm -rf build/ food_diary.db
