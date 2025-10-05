@@ -142,6 +142,7 @@ class FoodDiaryStack(Stack):
         lambda_function.add_environment("BASE_URL", base_url)
         lambda_function.add_environment("API_STAGE_PATH", "/prod")
         lambda_function.add_environment("SECRET_KEY", secret_key)
+        lambda_function.add_environment("OAUTH_PROVIDER", "github")  # Explicitly set for production
         lambda_function.add_environment("GITHUB_CLIENT_ID", github_client_id)
         lambda_function.add_environment("GITHUB_CLIENT_SECRET", github_client_secret)
 

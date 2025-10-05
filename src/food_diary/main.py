@@ -52,6 +52,11 @@ oauth = OAuth()
 
 if OAUTH_PROVIDER == "github":
     # Production GitHub OAuth
+    if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
+        raise ValueError(
+            "GitHub OAuth requires GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables. "
+            "Please set these in your deployment configuration."
+        )
     oauth.register(
         name="github",
         client_id=GITHUB_CLIENT_ID,
