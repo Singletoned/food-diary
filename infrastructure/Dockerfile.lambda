@@ -1,18 +1,19 @@
 # Multi-stage build for AWS Lambda container image - x86_64 architecture  
-FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.11
+ARG TARGETPLATFORM=linux/amd64
+FROM --platform=$TARGETPLATFORM public.ecr.aws/lambda/python:3.11
 
 # Install system dependencies if needed
 RUN yum update -y && yum install -y gcc
 
 # Copy requirements and install dependencies in Linux environment
-COPY ../requirements.txt ${LAMBDA_TASK_ROOT}/
+COPY requirements.txt ${LAMBDA_TASK_ROOT}/
 RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
 
 # Copy application code
-COPY ../src/ ${LAMBDA_TASK_ROOT}/src/
-COPY ../templates/ ${LAMBDA_TASK_ROOT}/templates/
-COPY ../static/ ${LAMBDA_TASK_ROOT}/static/
-COPY lambda_handler.py ${LAMBDA_TASK_ROOT}/
+COPY src/ ${LAMBDA_TASK_ROOT}/src/
+COPY templates/ ${LAMBDA_TASK_ROOT}/templates/
+COPY static/ ${LAMBDA_TASK_ROOT}/static/
+COPY infrastructure/lambda_handler.py ${LAMBDA_TASK_ROOT}/
 
 # Fix file permissions
 RUN chmod -R 755 ${LAMBDA_TASK_ROOT}/src/
