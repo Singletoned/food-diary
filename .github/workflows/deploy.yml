@@ -1,0 +1,91 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Food Diary to AWS
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Node.js (for CDK)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install AWS CDK
+        run: npm install -g aws-cdk
+
+      - name: Install Python dependencies
+        run: |
+          pip install aws-cdk-lib constructs
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Verify AWS Secrets exist
+        run: |
+          echo "🔍 Checking if OAuth secrets exist..."
+          if ! aws secretsmanager describe-secret --secret-id chompix/oauth &>/dev/null; then
+            echo "❌ ERROR: Secret 'chompix/oauth' not found in AWS Secrets Manager"
+            echo "Please run 'just setup-aws-secrets' first to create the secret"
+            exit 1
+          fi
+          echo "✅ OAuth secrets found"
+
+      - name: Bootstrap CDK (if needed)
+        run: |
+          cd infrastructure
+          cdk bootstrap --quiet
+
+      - name: Deploy to AWS
+        run: |
+          echo "🏗️ Deploying to AWS..."
+          cd infrastructure
+          cdk deploy --require-approval never --outputs-file ../build/cdk-outputs.json
+
+      - name: Upload static files to S3
+        run: |
+          if [ -f build/cdk-outputs.json ]; then
+            BUCKET=$(jq -r '.FoodDiaryStack.DataBucket' build/cdk-outputs.json)
+            API_URL=$(jq -r '.FoodDiaryStack.ApiUrl' build/cdk-outputs.json)
+            echo "📁 Uploading static files to bucket: $BUCKET"
+            aws s3 sync static/ s3://$BUCKET/static/ --delete
+            echo "🎉 Deployment complete!"
+            echo "🌐 API URL: $API_URL"
+            echo "::notice title=Deployment Success::API URL: $API_URL"
+          else
+            echo "❌ CDK outputs file not found"
+            exit 1
+          fi
+
+      - name: Post deployment summary
+        if: success()
+        run: |
+          API_URL=$(jq -r '.FoodDiaryStack.ApiUrl' build/cdk-outputs.json)
+          CLOUDFRONT=$(jq -r '.FoodDiaryStack.CloudFrontDomain' build/cdk-outputs.json)
+          echo "### 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **API URL**: $API_URL" >> $GITHUB_STEP_SUMMARY
+          echo "- **CloudFront Domain**: https://$CLOUDFRONT" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
