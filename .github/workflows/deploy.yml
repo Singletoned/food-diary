@@ -36,6 +36,21 @@ jobs:
         run: |
           pip install aws-cdk-lib constructs
 
+      - name: Check AWS Role ARN is configured
+        run: |
+          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
+            echo "❌ ERROR: AWS_ROLE_ARN secret is not configured"
+            echo ""
+            echo "To fix this:"
+            echo "1. Run 'just setup-github-oidc' locally to create the IAM role"
+            echo "2. Add the AWS_ROLE_ARN secret to GitHub repository settings"
+            echo "   Go to: Settings → Secrets and variables → Actions → New repository secret"
+            echo ""
+            echo "See .github/DEPLOYMENT.md for detailed instructions"
+            exit 1
+          fi
+          echo "✅ AWS_ROLE_ARN is configured"
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:

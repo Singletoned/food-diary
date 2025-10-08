@@ -42,6 +42,115 @@ deploy-aws: bootstrap-aws
 destroy-aws:
     cd infrastructure && cdk destroy --output /tmp/cdk-out
 
+setup-github-oidc:
+    #!/usr/bin/env bash
+    set -e
+
+    echo "🔐 GitHub Actions OIDC Setup"
+    echo "============================"
+    echo ""
+    echo "This will set up AWS OIDC authentication for GitHub Actions deployments."
+    echo ""
+
+    # Get AWS account ID
+    ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+    echo "📋 AWS Account ID: $ACCOUNT_ID"
+    echo ""
+
+    # Prompt for GitHub repository details
+    read -p "Enter GitHub username/org (e.g., 'singletoned'): " GITHUB_USER
+    read -p "Enter repository name (e.g., 'food-diary'): " REPO_NAME
+
+    REPO_FULL="${GITHUB_USER}/${REPO_NAME}"
+    echo ""
+    echo "🔧 Setting up OIDC for repository: $REPO_FULL"
+    echo ""
+
+    # Check if OIDC provider already exists
+    echo "1️⃣  Checking OIDC provider..."
+    PROVIDER_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
+
+    if aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$PROVIDER_ARN" &>/dev/null; then
+        echo "   ✅ OIDC provider already exists"
+    else
+        echo "   Creating OIDC provider..."
+        aws iam create-open-id-connect-provider \
+            --url https://token.actions.githubusercontent.com \
+            --client-id-list sts.amazonaws.com \
+            --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+        echo "   ✅ OIDC provider created"
+    fi
+
+    # Create trust policy
+    echo ""
+    echo "2️⃣  Creating IAM role trust policy..."
+    TRUST_POLICY=$(cat <<EOF
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Federated": "${PROVIDER_ARN}"
+          },
+          "Action": "sts:AssumeRoleWithWebIdentity",
+          "Condition": {
+            "StringEquals": {
+              "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+            },
+            "StringLike": {
+              "token.actions.githubusercontent.com:sub": "repo:${REPO_FULL}:ref:refs/heads/main"
+            }
+          }
+        }
+      ]
+    }
+    EOF
+    )
+
+    # Create IAM role
+    echo "3️⃣  Creating IAM role..."
+    ROLE_NAME="GitHubActionsDeployRole"
+
+    if aws iam get-role --role-name "$ROLE_NAME" &>/dev/null; then
+        echo "   Role already exists, updating trust policy..."
+        aws iam update-assume-role-policy \
+            --role-name "$ROLE_NAME" \
+            --policy-document "$TRUST_POLICY"
+    else
+        echo "   Creating new role..."
+        aws iam create-role \
+            --role-name "$ROLE_NAME" \
+            --assume-role-policy-document "$TRUST_POLICY"
+
+        echo "   Attaching AdministratorAccess policy..."
+        aws iam attach-role-policy \
+            --role-name "$ROLE_NAME" \
+            --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+    fi
+
+    ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
+    echo "   ✅ Role created: $ROLE_ARN"
+
+    echo ""
+    echo "🎉 Setup complete!"
+    echo ""
+    echo "📝 Next steps:"
+    echo "   1. Go to GitHub repository settings:"
+    echo "      https://github.com/${REPO_FULL}/settings/secrets/actions"
+    echo ""
+    echo "   2. Add this secret:"
+    echo "      Name:  AWS_ROLE_ARN"
+    echo "      Value: $ROLE_ARN"
+    echo ""
+    echo "   3. (Optional) Add this variable:"
+    echo "      Name:  AWS_REGION"
+    echo "      Value: us-east-1"
+    echo ""
+    echo "   4. Run 'just setup-aws-secrets' to create OAuth secrets"
+    echo ""
+    echo "   5. Push to main branch to trigger deployment!"
+
 setup-aws-secrets:
     #!/usr/bin/env bash
     set -e
