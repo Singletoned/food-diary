@@ -2,13 +2,57 @@
 
 This document explains how to set up automated deployments to AWS using GitHub Actions.
 
-## Prerequisites
+## Quick Setup (3 steps)
+
+### 1. Set up AWS OIDC and IAM Role
+
+Run this command locally (you'll be prompted for your GitHub username and repo name):
+
+```bash
+just setup-github-oidc
+```
+
+This will:
+- Create AWS OIDC provider for GitHub Actions
+- Create IAM role with proper permissions
+- Display the Role ARN you need for step 2
+
+### 2. Add GitHub Secret
+
+The previous command will output a URL and the Role ARN. Go to:
+
+**GitHub → Settings → Secrets and variables → Actions → New repository secret**
+
+Add:
+- **Name**: `AWS_ROLE_ARN`
+- **Value**: (the ARN from step 1, format: `arn:aws:iam::123456789012:role/GitHubActionsDeployRole`)
+
+### 3. Create OAuth Secrets
+
+Run locally:
+
+```bash
+just setup-aws-secrets
+```
+
+Enter your GitHub OAuth credentials when prompted.
+
+### 4. Deploy!
+
+Push to the `main` branch and GitHub Actions will automatically deploy your app.
+
+---
+
+## Manual Setup (if you prefer)
+
+<details>
+<summary>Click to expand manual setup instructions</summary>
+
+### Prerequisites
 
 - AWS Account with appropriate permissions
 - GitHub repository with Actions enabled
 - OAuth secrets already created in AWS Secrets Manager (run `just setup-aws-secrets`)
-
-## Setup Steps
 
 ### 1. Create AWS OIDC Provider for GitHub
 
@@ -86,17 +130,7 @@ Add the following **secret**:
 Add the following **variable** (optional):
 - `AWS_REGION`: Your target AWS region (default: `us-east-1`)
 
-### 4. Set up GitHub Environment (Optional)
-
-For additional protection:
-
-**Settings → Environments → New environment**
-
-Create an environment named `production` and optionally configure:
-- Required reviewers (for manual approval before deployment)
-- Deployment branches (restrict to `main` branch only)
-
-### 5. Create AWS Secrets
+### 4. Create AWS Secrets
 
 Before deploying, ensure the OAuth secrets exist:
 
@@ -105,6 +139,10 @@ just setup-aws-secrets
 ```
 
 This must be done at least once before the first deployment.
+
+</details>
+
+---
 
 ## How It Works
 
