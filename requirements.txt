@@ -1,0 +1,9 @@
+starlette
+uvicorn[standard]
+pypugjs
+authlib
+httpx
+itsdangerous
+python-dotenv
+mangum
+boto3

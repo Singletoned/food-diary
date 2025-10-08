@@ -3,8 +3,12 @@ html(lang="en")
   head
     meta(charset="UTF-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
-    title Food Diary Entry
-    link(rel="stylesheet", href="/static/styles.css")
+    title Chompix - Smart Food Diary
+    link(
+      rel="stylesheet",
+      href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css"
+    )
+    link(rel="stylesheet", href="#{api_stage_path}/static/styles.css")
     script(
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js",
       defer
@@ -12,79 +16,167 @@ html(lang="en")
     script(
       src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
     )
-    script(src="/static/app.js")
+    script(src="#{api_stage_path}/static/app.js")
   body(x-data="foodDiaryApp()", x-init="initApp()")
-    header
-      .header-top
-        h1 Food Diary
-        .sync-controls
-          button.sync-button(
-            @click="syncWithServer",
-            :disabled="syncStatus === 'syncing'"
+    // Login page for unauthenticated users
+    section.hero.is-fullheight(x-show="!isAuthenticated")
+      .hero-body
+        .container.has-text-centered
+          .column.is-4.is-offset-4
+            .box
+              h1.title.is-2 Chompix
+              p.subtitle Welcome! Please sign in with your GitHub account to continue.
+              button.button.is-primary.is-large.is-fullwidth(@click="login")
+                span.icon
+                  | 🐙
+                span Sign in with GitHub
+
+    // Main app for authenticated users
+    div(x-show="isAuthenticated")
+      nav.navbar.is-dark(role="navigation")
+        .container
+          .navbar-brand
+            .navbar-item
+              h1.title.is-4.has-text-white Chompix
+          .navbar-menu
+            .navbar-start
+            .navbar-end
+              .navbar-item
+                .buttons
+                  button.button.is-success.is-small(
+                    @click="syncWithServer",
+                    :disabled="syncStatus === 'syncing'"
+                  )
+                    span.icon.is-small
+                      span(x-show="syncStatus === 'idle'") 🔄
+                      span(x-show="syncStatus === 'syncing'") ⏳
+                      span(x-show="syncStatus === 'error'") ❌
+                    span(x-show="syncStatus === 'idle'") Sync
+                    span(x-show="syncStatus === 'syncing'") Syncing...
+                    span(x-show="syncStatus === 'error'") Error
+                  button.button.is-info.is-small(
+                    @click="exportData",
+                    :disabled="entries.length === 0"
+                  )
+                    span.icon.is-small
+                      | 📦
+                    span Export
+                  .tag(:class="navigator.onLine ? 'is-success' : 'is-danger'")
+                    span(x-show="navigator.onLine") 🟢 Online
+                    span(x-show="!navigator.onLine") 🔴 Offline
+              .navbar-item.has-dropdown.is-hoverable
+                a.navbar-link.has-text-white
+                  figure.image.is-24x24.mr-2(x-show="userInfo?.avatar_url")
+                    img.is-rounded(
+                      :src="userInfo?.avatar_url",
+                      :alt="userInfo?.username"
+                    )
+                  span(x-text="userInfo?.name || userInfo?.username")
+                .navbar-dropdown.is-right
+                  a.navbar-item(@click="logout") Logout
+
+      .container
+        .section.py-4
+          .tabs.is-centered.is-boxed
+            ul
+              li(:class="{ 'is-active': currentView === 'entry' }")
+                a(@click="currentView = 'entry'")
+                  span.icon.is-small
+                    | ✏️
+                  span New Entry
+              li(:class="{ 'is-active': currentView === 'history' }")
+                a(@click="currentView = 'history'")
+                  span.icon.is-small
+                    | 📚
+                  span History
+
+        .section(x-show="currentView === 'entry'")
+          .columns.is-centered
+            .column.is-8
+              .box
+                h2.title.is-4 Add New Entry
+                .field
+                  label.label(for="note") Note:
+                  .control
+                    textarea#note.textarea(
+                      x-model="note",
+                      rows="4",
+                      placeholder="Enter your food notes..."
+                    )
+
+                .field
+                  .control
+                    label.checkbox
+                      input#custom-datetime-checkbox(
+                        type="checkbox",
+                        x-model="useCustomDatetime"
+                      )
+                      |
+                      | Set custom date/time
+
+                  .field(x-show="useCustomDatetime")
+                    label.label(for="event-datetime") Event Date & Time:
+                    .control
+                      input#event-datetime.input(
+                        type="datetime-local",
+                        x-model="eventDatetime"
+                      )
+
+                .field
+                  label.label(for="photo") Photo:
+                  .file.is-boxed
+                    label.file-label
+                      input#photo.file-input(
+                        type="file",
+                        accept="image/*",
+                        @change="handlePhotoUpload($event)"
+                      )
+                      span.file-cta
+                        span.file-icon
+                          | 📷
+                        span.file-label Choose a file...
+
+                .field(x-show="photoPreview")
+                  label.label Photo Preview:
+                  .control
+                    figure.image.is-256x256
+                      img(:src="photoPreview", alt="Photo preview")
+
+                .field
+                  .control
+                    button.button.is-success.is-large.is-fullwidth(
+                      @click="saveEntry",
+                      :disabled="!note && !photoBase64"
+                    )
+                      span.icon
+                        | 💾
+                      span Save Entry
+
+        .section(x-show="currentView === 'history'")
+          h2.title.is-4 Entry History
+          .columns.is-multiline
+            template(x-for="entry in entries", :key="entry.id")
+              .column.is-12
+                .card
+                  .card-header
+                    .card-header-title
+                      span.icon.mr-2
+                        | 📅
+                      span(x-text="formatTimestamp(entry.event_datetime)")
+                    .card-header-icon
+                      button.delete.is-small(@click="deleteEntry(entry.id)")
+                  .card-content(x-show="entry.text")
+                    .content
+                      p(x-text="entry.text")
+                  .card-image(x-show="entry.photo")
+                    figure.image
+                      img(:src="entry.photo", alt="Food photo")
+          .notification.is-info.has-text-centered(
+            x-show="entries.length === 0"
           )
-            span(x-show="syncStatus === 'idle'") 🔄 Sync
-            span(x-show="syncStatus === 'syncing'") ⏳ Syncing...
-            span(x-show="syncStatus === 'error'") ❌ Sync Error
-          button.export-button(
-            @click="exportData",
-            :disabled="entries.length === 0"
-          ) 📦 Export
-          .online-status(:class="{ offline: !navigator.onLine }")
-            span(x-show="navigator.onLine") 🟢 Online
-            span(x-show="!navigator.onLine") 🔴 Offline
-      nav.nav-tabs
-        button.nav-tab(
-          :class="{ active: currentView === 'entry' }",
-          @click="currentView = 'entry'"
-        ) New Entry
-        button.nav-tab(
-          :class="{ active: currentView === 'history' }",
-          @click="currentView = 'history'"
-        ) History
-
-    .view-container(x-show="currentView === 'entry'")
-      h2 Add New Entry
-      .food-diary-form
-      .form-group
-        label.form-label(for="note") Note:
-        textarea#note.form-textarea(
-          x-model="note",
-          rows="4",
-          placeholder="Enter your food notes..."
-        )
-
-      .form-group
-        label.form-label(for="photo") Photo:
-        input#photo.form-file-input(
-          type="file",
-          accept="image/*",
-          @change="handlePhotoUpload($event)"
-        )
-
-      .form-group(x-show="photoPreview")
-        h3 Photo Preview:
-        img.photo-preview(:src="photoPreview", alt="Photo preview")
-
-      .form-group
-        button.save-button(
-          @click="saveEntry",
-          :disabled="!note && !photoBase64"
-        ) Save Entry
-
-    .view-container(x-show="currentView === 'history'")
-      h2 Entry History
-      .history-container
-        template(x-for="entry in entries", :key="entry.id")
-          .entry
-            .entry-header
-              .entry-timestamp(x-text="formatTimestamp(entry.timestamp)")
-              button.delete-button(@click="deleteEntry(entry.id)") ×
-            .entry-content
-              p.entry-text(x-text="entry.text")
-              .entry-photo(x-show="entry.photo")
-                img(:src="entry.photo", alt="Food photo")
-        .empty-history(x-show="entries.length === 0")
-          p No entries yet. Add your first food diary entry!
+            span.icon.is-large
+              | 📝
+            p.is-size-5 No entries yet. Add your first food diary entry!
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
@@ -94,12 +186,20 @@ html(lang="en")
         return {
           currentView: "entry",
           note: "",
+          useCustomDatetime: false,
+          eventDatetime: "",
           photoBase64: null,
           photoPreview: null,
           entries: [],
           syncStatus: "idle", // idle, syncing, error
+          isAuthenticated: #{ is_authenticated },
+          userInfo: #{ user },
+          apiStagePath: #{ api_stage_path },
 
           async initApp() {
+            if (!this.isAuthenticated) {
+              return; // Don't initialize app data if not authenticated
+            }
             try {
               await foodDiaryUtils.initDB(); // This calls initDB from static/app.js
               await this.loadEntries(); // Load existing entries
@@ -131,16 +231,16 @@ html(lang="en")
               this.entries = await foodDiaryUtils.readAllEntriesFromDB();
               console.log("DEBUG: Loaded entries from DB:", this.entries);
               console.log("DEBUG: Number of entries:", this.entries.length);
-              // Sort by timestamp, newest first
-              this.entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+              // Sort by event_datetime, newest first
+              this.entries.sort((a, b) => new Date(b.event_datetime) - new Date(a.event_datetime));
               console.log("DEBUG: After sorting:", this.entries);
             } catch (error) {
               console.error("Error loading entries:", error);
             }
           },
 
-          formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
+          formatTimestamp(eventDatetime) {
+            const date = new Date(eventDatetime);
             return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
           },
 
@@ -189,6 +289,7 @@ html(lang="en")
 
             const entryData = {
               timestamp: new Date().toISOString(),
+              event_datetime: this.useCustomDatetime && this.eventDatetime ? new Date(this.eventDatetime).toISOString() : new Date().toISOString(),
               text: this.note,
               photo: this.photoBase64,
             };
@@ -196,8 +297,10 @@ html(lang="en")
             try {
               const newEntryId = await foodDiaryUtils.saveEntryToDB(entryData); // Calls saveEntryToDB from static/app.js
               console.log("Alpine component: Entry saved successfully with ID:", newEntryId);
-              alert(`Entry saved! Data: ${JSON.stringify({ text: this.note, photo: this.photoBase64 ? "has photo" : "no photo", timestamp: entryData.timestamp })}`);
+              alert(`Entry saved! Data: ${JSON.stringify({ text: this.note, photo: this.photoBase64 ? "has photo" : "no photo", event_datetime: entryData.event_datetime })}`);
               this.note = "";
+              this.useCustomDatetime = false;
+              this.eventDatetime = "";
               this.photoBase64 = null;
               this.photoPreview = null;
               // Reset file input
@@ -222,6 +325,7 @@ html(lang="en")
               const exportEntries = this.entries.map((entry) => ({
                 id: entry.id,
                 timestamp: entry.timestamp,
+                event_datetime: entry.event_datetime,
                 text: entry.text,
                 hasPhoto: !!entry.photo,
                 synced: entry.synced,
@@ -241,7 +345,7 @@ html(lang="en")
                   if (matches) {
                     const extension = matches[1];
                     const base64Data = matches[2];
-                    const fileName = `entry_${entry.id}_${entry.timestamp.split("T")[0]}.${extension}`;
+                    const fileName = `entry_${entry.id}_${entry.event_datetime.split("T")[0]}.${extension}`;
                     imagesFolder.file(fileName, base64Data, { base64: true });
                     imageCount++;
                   }
@@ -263,6 +367,20 @@ html(lang="en")
             } catch (error) {
               console.error("Export failed:", error);
               alert("Export failed. Check console for details.");
+            }
+          },
+
+          async login() {
+            window.location.href = `${this.apiStagePath}/auth/login`;
+          },
+
+          async logout() {
+            try {
+              await fetch(`${this.apiStagePath}/auth/logout`, { method: "POST" });
+              window.location.href = `${this.apiStagePath}/`;
+            } catch (error) {
+              console.error("Logout failed:", error);
+              window.location.href = `${this.apiStagePath}/auth/logout`;
             }
           },
 

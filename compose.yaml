@@ -1,16 +1,70 @@
 services:
-  app:
+  # LocalStack - AWS services emulator
+  localstack:
+    build:
+      context: ./docker/localstack
+      dockerfile: Dockerfile
+    container_name: food-diary-localstack
+    ports:
+      - "4566:4566" # LocalStack main port
+      - "4510-4559:4510-4559" # External service port range
+    env_file:
+      - ./envs/localstack/.env
+    volumes:
+      - "./docker/localstack/init:/etc/localstack/init/ready.d"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - food-diary-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Food Diary Application
+  food-diary:
     build:
       context: .
-      dockerfile: ./docker/app/Dockerfile
+      dockerfile: ./docker/food-diary/Dockerfile
+    container_name: food-diary-app
     ports:
       - "8000:8000"
+    env_file:
+      - ./envs/food-diary/.env
     volumes:
-      - ./:/app/
-    command: uvicorn src.food_diary.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src --reload-dir /app/templates
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-      start_period: 5s
+      - "./src:/app/src:ro"
+      - "./templates:/app/templates:ro"
+      - "./static:/app/static:ro"
+      - "./food_diary.db:/app/food_diary.db"
+    depends_on:
+      localstack:
+        condition: service_healthy
+    networks:
+      - food-diary-network
+    command:
+      [
+        "uvicorn",
+        "src.food_diary.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
+
+  # Mock OAuth Server for testing
+  mock-oauth:
+    build:
+      context: ./docker/mock-oauth
+      dockerfile: Dockerfile
+    container_name: food-diary-oauth
+    ports:
+      - "8080:8080"
+    networks:
+      - food-diary-network
+    environment:
+      - PORT=8080
+
+networks:
+  food-diary-network:
+    driver: bridge

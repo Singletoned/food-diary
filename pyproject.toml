@@ -8,6 +8,13 @@ dependencies = [
   "starlette",
   "uvicorn[standard]", # [standard] includes common extras like websockets and http tools
   "pypugjs",
+  "authlib",           # OAuth client library
+  "httpx",             # Required by authlib for HTTP requests
+  "itsdangerous",      # Session management and security
+  "python-dotenv",     # Environment variable management
+  "mangum",            # ASGI adapter for AWS Lambda
+  "psycopg2-binary",   # PostgreSQL adapter
+  "sentry-sdk",        # Error tracking and monitoring
 ]
 
 [project.urls]
@@ -36,6 +43,7 @@ test = [
   "playwright",
   "nose2",      # Add nose2 for E2E tests
 ]
+cdk = ["aws-cdk-lib>=2.0.0", "constructs>=10.0.0", "boto3"]
 
 [tool.ruff]
 fix = true

@@ -1,5 +1,23 @@
 .aider*
-/build/
+build/
 *.egg-info
 __pycache__
 CLAUDE.md
+.claude/
+.env
+
+# Generated SSL certificates
+nginx/ssl/*.crt
+nginx/ssl/*.key
+nginx/ssl/*.pem
+
+# AWS
+.aws/
+
+# Local database
+food_diary.db
+
+# Docker/LocalStack local development
+.env.local
+localstack-data/
+docker-compose.override.yml

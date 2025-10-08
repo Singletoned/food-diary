@@ -19,19 +19,44 @@ def setup_test_db(monkeypatch):
     # Patch the DB_PATH to use test database
     monkeypatch.setattr("food_diary.main.DB_PATH", TEST_DB_PATH)
 
-    # Initialize test database
+    # Initialize test database with full schema
     conn = sqlite3.connect(TEST_DB_PATH)
     cursor = conn.cursor()
+
+    # Create users table
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS entries (
+        CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT NOT NULL,
-            text TEXT,
-            photo TEXT,
-            synced BOOLEAN DEFAULT FALSE,
+            github_id INTEGER UNIQUE NOT NULL,
+            username TEXT NOT NULL,
+            name TEXT,
+            email TEXT,
+            avatar_url TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    # Create entries table with user_id and event_datetime
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            timestamp TEXT NOT NULL,
+            event_datetime TEXT,
+            text TEXT,
+            photo TEXT,
+            synced BOOLEAN DEFAULT FALSE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    """)
+
+    # Create a test user
+    cursor.execute("""
+        INSERT INTO users (github_id, username, name, email)
+        VALUES (12345, 'testuser', 'Test User', 'test@example.com')
+    """)
+
     conn.commit()
     conn.close()
 
@@ -43,6 +68,23 @@ def setup_test_db(monkeypatch):
 
 
 client = TestClient(app)
+
+
+@pytest.fixture
+def mock_auth(monkeypatch):
+    """Mock authentication to return test user."""
+
+    def mock_get_current_user(request):
+        return {
+            "id": 1,
+            "github_id": 12345,
+            "username": "testuser",
+            "name": "Test User",
+            "email": "test@example.com",
+            "avatar_url": None,
+        }
+
+    monkeypatch.setattr("food_diary.main.get_current_user", mock_get_current_user)
 
 
 def test_homepage_loads_successfully():
@@ -65,7 +107,7 @@ def test_homepage_includes_app_js():
     assert 'src="/static/app.js"' in response.text
 
 
-def test_api_get_entries_empty():
+def test_api_get_entries_empty(mock_auth):
     """
     Tests the GET /api/entries endpoint returns empty list initially.
     """
@@ -74,7 +116,7 @@ def test_api_get_entries_empty():
     assert response.json() == []
 
 
-def test_api_create_entry():
+def test_api_create_entry(mock_auth):
     """
     Tests creating a new entry via POST /api/entries.
     """
@@ -90,7 +132,7 @@ def test_api_create_entry():
     assert "id" in created_entry
 
 
-def test_api_get_entries_with_data():
+def test_api_get_entries_with_data(mock_auth):
     """
     Tests the GET /api/entries endpoint returns created entries.
     """
@@ -117,7 +159,7 @@ def test_api_get_entries_with_data():
     assert test_entry["photo"] == "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/"
 
 
-def test_api_delete_entry():
+def test_api_delete_entry(mock_auth):
     """
     Tests deleting an entry via DELETE /api/entries/{id}.
     """
@@ -139,7 +181,7 @@ def test_api_delete_entry():
     assert deleted_entry is None
 
 
-def test_api_delete_nonexistent_entry():
+def test_api_delete_nonexistent_entry(mock_auth):
     """
     Tests deleting a non-existent entry returns 404.
     """
@@ -176,7 +218,7 @@ def test_homepage_entry_template_structure():
     assert "delete-button" in response.text
 
 
-def test_history_functionality_integration():
+def test_history_functionality_integration(mock_auth):
     """
     Integration test that creates entries via API and verifies they appear in history.
     This tests the full flow from API to frontend data binding.
@@ -211,7 +253,7 @@ def test_history_functionality_integration():
     assert "Dinner entry" in texts
 
 
-def test_history_entry_deletion():
+def test_history_entry_deletion(mock_auth):
     """
     Tests that entries can be deleted and are removed from history.
     """
