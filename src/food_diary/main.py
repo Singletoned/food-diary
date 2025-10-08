@@ -1,10 +1,13 @@
+import json
 import logging
 import os
 from datetime import datetime
 
+import boto3
 import pypugjs
 import sentry_sdk
 from authlib.integrations.starlette_client import OAuth
+from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
@@ -36,6 +39,22 @@ sentry_sdk.init(
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
+
+def get_secrets_from_aws():
+    """Get OAuth secrets from AWS Secrets Manager."""
+    secret_name = os.getenv("SECRETS_MANAGER_SECRET_NAME")
+    if not secret_name:
+        return {}
+
+    try:
+        secrets_client = boto3.client("secretsmanager")
+        response = secrets_client.get_secret_value(SecretId=secret_name)
+        return json.loads(response["SecretString"])
+    except (ClientError, json.JSONDecodeError) as e:
+        logging.warning(f"Failed to get secrets from AWS Secrets Manager: {e}")
+        return {}
+
+
 # Determine the application directory (e.g., src/food-diary)
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 # Determine the project root directory (parent of src)
@@ -53,10 +72,13 @@ API_STAGE_PATH = os.getenv("API_STAGE_PATH", "")
 # Ensure the static directory exists, as Starlette expects it
 os.makedirs(STATIC_DIR, exist_ok=True)
 
-# OAuth Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
-GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+# OAuth Configuration - try Secrets Manager first, fall back to environment variables
+secrets = get_secrets_from_aws()
+SECRET_KEY = secrets.get("SECRET_KEY") or os.getenv(
+    "SECRET_KEY", "dev-secret-key-change-in-production"
+)
+GITHUB_CLIENT_ID = secrets.get("GITHUB_CLIENT_ID") or os.getenv("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = secrets.get("GITHUB_CLIENT_SECRET") or os.getenv("GITHUB_CLIENT_SECRET")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 # OAuth Provider Configuration
@@ -69,8 +91,8 @@ if OAUTH_PROVIDER == "github":
     # Production GitHub OAuth
     if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
         raise ValueError(
-            "GitHub OAuth requires GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables. "
-            "Please set these in your deployment configuration."
+            "GitHub OAuth requires GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET. "
+            "Please set these in AWS Secrets Manager or environment variables."
         )
     oauth.register(
         name="github",

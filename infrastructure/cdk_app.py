@@ -20,10 +20,9 @@ from aws_cdk import aws_lambda as _lambda
 from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_secretsmanager as secretsmanager
 from constructs import Construct
-from dotenv import load_dotenv
 
-# Load environment variables from .env file in parent directory
-load_dotenv("../.env")
+# Environment variables will be loaded from Secrets Manager in production
+# load_dotenv("../.env")  # Commented out - using Secrets Manager instead
 
 
 class FoodDiaryStack(Stack):
@@ -51,15 +50,13 @@ class FoodDiaryStack(Stack):
         # Note: CloudFront distribution will be configured after API Gateway is created
 
         # Secrets for OAuth credentials
-        oauth_secrets = secretsmanager.Secret(
+        # Import existing secret that must be created before deployment
+        # Run `just setup-aws-secrets` to create the secret before running `just deploy-aws`
+        # This approach allows the secret to be managed outside of CDK without conflicts
+        oauth_secrets = secretsmanager.Secret.from_secret_name_v2(
             self,
-            "OAuthSecrets",
-            description="GitHub OAuth credentials",
-            generate_secret_string=secretsmanager.SecretStringGenerator(
-                secret_string_template='{"SECRET_KEY": "change-me"}',
-                generate_string_key="SECRET_KEY",
-                exclude_characters='"/\\@',
-            ),
+            "ChompixOAuthSecrets",
+            secret_name="chompix/oauth",
         )
 
         # Lambda function using container image deployment (CloudFront domain will be added later)
@@ -123,28 +120,21 @@ class FoodDiaryStack(Stack):
             ),
             additional_behaviors={
                 "/static/*": cloudfront.BehaviorOptions(
-                    origin=origins.S3Origin(data_bucket),
+                    origin=origins.S3BucketOrigin(data_bucket),
                     cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
                     viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 ),
             },
         )
 
-        # Get GitHub OAuth credentials from .env file (already loaded)
-        github_client_id = os.environ.get("GITHUB_CLIENT_ID", "your-github-client-id")
-        github_client_secret = os.environ.get("GITHUB_CLIENT_SECRET", "your-github-client-secret")
-        secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
-
-        # Update Lambda environment with URLs and OAuth config
+        # Update Lambda environment with URLs and deployment config
         lambda_function.add_environment("CLOUDFRONT_DOMAIN", distribution.distribution_domain_name)
         # Construct BASE_URL manually to avoid circular dependency
         base_url = f"https://{api.rest_api_id}.execute-api.{self.region}.amazonaws.com/prod"
         lambda_function.add_environment("BASE_URL", base_url)
         lambda_function.add_environment("API_STAGE_PATH", "/prod")
-        lambda_function.add_environment("SECRET_KEY", secret_key)
         lambda_function.add_environment("OAUTH_PROVIDER", "github")  # Explicitly set for production
-        lambda_function.add_environment("GITHUB_CLIENT_ID", github_client_id)
-        lambda_function.add_environment("GITHUB_CLIENT_SECRET", github_client_secret)
+        lambda_function.add_environment("SECRETS_MANAGER_SECRET_NAME", oauth_secrets.secret_name)
 
         # Output important values
         from aws_cdk import CfnOutput
@@ -174,8 +164,8 @@ class FoodDiaryStack(Stack):
             self,
             "GitHubOAuthSetup",
             value=(
-                f"Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables, "
-                f"then redeploy. Callback URL: {base_url}/auth/callback"
+                f"Update AWS Secrets Manager secret '{oauth_secrets.secret_name}' "
+                f"with your GitHub OAuth credentials. Callback URL: {base_url}/auth/callback"
             ),
             description="GitHub OAuth setup instructions",
         )
