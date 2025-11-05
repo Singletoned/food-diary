@@ -15,7 +15,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
@@ -210,6 +210,22 @@ async def homepage(request):
     return render_pug_template("index.pug", context)
 
 
+async def service_worker(request):
+    """
+    Serves the service worker file with the correct MIME type.
+    Service workers need to be served from the root to have the correct scope.
+    """
+    service_worker_path = os.path.join(STATIC_DIR, "service-worker.js")
+    return FileResponse(
+        service_worker_path,
+        media_type="application/javascript",
+        headers={
+            "Service-Worker-Allowed": "/",
+            "Cache-Control": "no-cache",  # Always check for updates
+        },
+    )
+
+
 # Authentication routes
 async def login(request: Request):
     """Initiate GitHub OAuth login."""
@@ -361,6 +377,8 @@ async def delete_entry(request: Request):
 
 routes = [
     Route("/", homepage),
+    # PWA routes
+    Route("/service-worker.js", service_worker),
     # Authentication routes
     Route("/auth/login", login),
     Route("/auth/callback", auth_callback),
