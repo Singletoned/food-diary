@@ -2,13 +2,33 @@ doctype html
 html(lang="en")
   head
     meta(charset="UTF-8")
-    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0, viewport-fit=cover")
     title Chompix - Smart Food Diary
+    meta(name="description", content="Track your food diary with photos and notes, works offline")
+
+    //- PWA Manifest
+    link(rel="manifest", href="#{api_stage_path}/static/manifest.json")
+
+    //- iOS-specific meta tags
+    meta(name="apple-mobile-web-app-capable", content="yes")
+    meta(name="apple-mobile-web-app-status-bar-style", content="default")
+    meta(name="apple-mobile-web-app-title", content="Chompix")
+
+    //- iOS app icons
+    link(rel="apple-touch-icon", href="#{api_stage_path}/static/icons/icon-152x152.png", sizes="152x152")
+    link(rel="apple-touch-icon", href="#{api_stage_path}/static/icons/icon-180x180.png", sizes="180x180")
+
+    //- Theme color for browser UI
+    meta(name="theme-color", content="#00d1b2")
+
+    //- Stylesheets
     link(
       rel="stylesheet",
       href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css"
     )
     link(rel="stylesheet", href="#{api_stage_path}/static/styles.css")
+
+    //- Scripts
     script(
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js",
       defer
@@ -180,6 +200,27 @@ html(lang="en")
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
+
+    //- Service Worker Registration
+    script.
+      // Register service worker for PWA functionality
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('#{api_stage_path}/service-worker.js')
+            .then((registration) => {
+              console.log('Service Worker registered successfully:', registration.scope);
+
+              // Check for updates periodically
+              setInterval(() => {
+                registration.update();
+              }, 60000); // Check every minute
+            })
+            .catch((error) => {
+              console.error('Service Worker registration failed:', error);
+            });
+        });
+      }
 
     script.
       function foodDiaryApp() {

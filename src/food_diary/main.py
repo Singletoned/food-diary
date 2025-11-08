@@ -15,7 +15,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
@@ -23,18 +23,6 @@ from .s3_storage import get_storage
 
 # Load environment variables
 load_dotenv()
-
-# Initialize Sentry
-sentry_sdk.init(
-    dsn="https://13e8d807a8b850acce0d83675d0961eb@o4510136156160000.ingest.de.sentry.io/4510136163958865",
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-    integrations=[
-        AwsLambdaIntegration(),
-        StarletteIntegration(transaction_style="endpoint"),
-    ],
-)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -83,6 +71,23 @@ BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 # OAuth Provider Configuration
 OAUTH_PROVIDER = os.getenv("OAUTH_PROVIDER", "github")
+
+SENTRY_DSN = secrets.get("SENTRY_DSN") or os.getenv("SENTRY_DSN")
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        # Add data like request headers and IP for users,
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        send_default_pii=True,
+        integrations=[
+            AwsLambdaIntegration(),
+            StarletteIntegration(transaction_style="endpoint"),
+        ],
+    )
+    logging.info("Sentry SDK initialized")
+else:
+    logging.info("SENTRY_DSN not provided; Sentry is disabled")
 
 # Initialize OAuth
 oauth = OAuth()
@@ -208,6 +213,22 @@ async def homepage(request):
         "api_stage_path": API_STAGE_PATH,
     }
     return render_pug_template("index.pug", context)
+
+
+async def service_worker(request):
+    """
+    Serves the service worker file with the correct MIME type.
+    Service workers need to be served from the root to have the correct scope.
+    """
+    service_worker_path = os.path.join(STATIC_DIR, "service-worker.js")
+    return FileResponse(
+        service_worker_path,
+        media_type="application/javascript",
+        headers={
+            "Service-Worker-Allowed": "/",
+            "Cache-Control": "no-cache",  # Always check for updates
+        },
+    )
 
 
 # Authentication routes
@@ -361,6 +382,8 @@ async def delete_entry(request: Request):
 
 routes = [
     Route("/", homepage),
+    # PWA routes
+    Route("/service-worker.js", service_worker),
     # Authentication routes
     Route("/auth/login", login),
     Route("/auth/callback", auth_callback),
