@@ -1,61 +1,439 @@
-/* Custom styles for Chompix Food Diary */
-/* Using Bulma CSS framework with minimal custom overrides */
+/* Chompix - Modern Smart App Styling */
+/* Clean, minimal design optimized for mobile and PWA */
 
-/* Custom photo preview styles */
-.image.is-256x256 img {
-  border-radius: 8px;
-  object-fit: cover;
+/* =========================
+   Global Styles & Variables
+   ========================= */
+
+:root {
+  --primary-color: #00d1b2;
+  --primary-dark: #00a896;
+  --primary-light: #00e5c1;
+  --bg-color: #f5f7fa;
+  --card-bg: #ffffff;
+  --text-primary: #2c3e50;
+  --text-secondary: #6c757d;
+  --border-color: #e1e8ed;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
 }
 
-/* Custom card image styling for food photos */
-.card-image img {
-  max-height: 300px;
-  object-fit: cover;
-  border-radius: 0;
+/* Body and base */
+body {
+  background: var(--bg-color);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom navbar brand styling */
-.navbar-brand .navbar-item {
-  font-weight: 700;
-}
-
-/* Custom dropdown avatar styling */
-.navbar-item .image.is-24x24 {
-  display: inline-block;
-  vertical-align: middle;
-}
-
-/* Alpine.js cloak directive */
+/* Alpine.js cloak */
 [x-cloak] {
   display: none !important;
 }
 
-/* Custom file input styling to work better with Bulma */
+/* =========================
+   Navbar Styling
+   ========================= */
+
+.navbar.is-dark {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+  box-shadow: var(--shadow-sm);
+  border: none;
+}
+
+.navbar-brand .navbar-item h1 {
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  font-size: 1.25rem;
+}
+
+.navbar-item .image.is-24x24 {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.navbar-dropdown {
+  border: none;
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-xs);
+}
+
+.navbar-item .buttons {
+  gap: var(--spacing-xs);
+}
+
+.navbar-item .buttons .button {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.navbar-item .buttons .button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.navbar-item .buttons .tag {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* =========================
+   Container & Layout
+   ========================= */
+
+.container {
+  max-width: 680px;
+  padding: 0 var(--spacing-md);
+}
+
+.section {
+  padding: var(--spacing-lg) 0;
+}
+
+.section.py-4 {
+  padding-top: var(--spacing-md) !important;
+  padding-bottom: var(--spacing-md) !important;
+}
+
+/* =========================
+   Tabs Styling
+   ========================= */
+
+.tabs.is-boxed {
+  margin-bottom: var(--spacing-lg);
+}
+
+.tabs.is-boxed ul {
+  border: none;
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 4px;
+}
+
+.tabs.is-boxed li {
+  margin: 0;
+}
+
+.tabs.is-boxed li a {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.tabs.is-boxed li.is-active a {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.tabs.is-boxed li:not(.is-active) a:hover {
+  background: var(--bg-color);
+  color: var(--text-primary);
+}
+
+/* =========================
+   Card & Box Styling
+   ========================= */
+
+.box {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-xl);
+  transition: all 0.3s ease;
+}
+
+.box:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  margin-bottom: var(--spacing-md);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.card-header {
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.card-header-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.card-content {
+  padding: var(--spacing-lg);
+}
+
+.card-content .content p {
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.card-image img {
+  max-height: 400px;
+  object-fit: cover;
+  width: 100%;
+}
+
+/* =========================
+   Form Elements
+   ========================= */
+
+.field {
+  margin-bottom: var(--spacing-lg);
+}
+
+.label {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.input,
+.textarea {
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  box-shadow: none;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 209, 178, 0.1);
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* File input styling */
+.file.is-boxed {
+  margin: var(--spacing-md) 0;
+}
+
+.file.is-boxed .file-label {
+  width: 100%;
+}
+
 .file.is-boxed .file-cta {
-  border-radius: 6px;
-  border: 2px dashed #dbdbdb;
-  background: #fafafa;
-  transition: all 0.2s;
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--border-color);
+  background: var(--bg-color);
+  padding: var(--spacing-xl);
+  transition: all 0.3s ease;
+  width: 100%;
 }
 
 .file.is-boxed:hover .file-cta {
-  border-color: #3273dc;
-  background: #f0f8ff;
+  border-color: var(--primary-color);
+  background: rgba(0, 209, 178, 0.05);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-/* Responsive adjustments */
+.file-icon {
+  font-size: 2rem;
+  margin-right: var(--spacing-sm);
+}
+
+/* Photo preview */
+.image.is-256x256 {
+  margin: var(--spacing-md) auto;
+  max-width: 256px;
+}
+
+.image.is-256x256 img {
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  box-shadow: var(--shadow-md);
+}
+
+/* =========================
+   Buttons
+   ========================= */
+
+.button {
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  padding: 12px 24px;
+  transition: all 0.2s ease;
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.button.is-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+}
+
+.button.is-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.button.is-success {
+  background: var(--primary-color);
+}
+
+.button.is-success:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.button.is-large {
+  font-size: 1.1rem;
+  padding: 16px 32px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.button .icon {
+  font-size: 1.2em;
+}
+
+.delete {
+  background: #f5f5f5;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.delete:hover {
+  background: #ff3860;
+  transform: scale(1.1);
+}
+
+/* =========================
+   Titles & Typography
+   ========================= */
+
+.title {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.title.is-2 {
+  font-size: 2rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.title.is-4 {
+  font-size: 1.5rem;
+  margin-bottom: var(--spacing-lg);
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: var(--spacing-sm);
+}
+
+/* =========================
+   Login Page
+   ========================= */
+
+.hero.is-fullheight {
+  background: linear-gradient(135deg, var(--bg-color) 0%, #e8f4f2 100%);
+}
+
+.hero-body .box {
+  padding: var(--spacing-xl) calc(var(--spacing-xl) * 1.5);
+}
+
+/* =========================
+   Notifications
+   ========================= */
+
+.notification.is-info {
+  background: var(--bg-color);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  padding: var(--spacing-xl);
+}
+
+/* =========================
+   Responsive Design
+   ========================= */
+
 @media (max-width: 768px) {
+  :root {
+    --spacing-lg: 16px;
+    --spacing-xl: 24px;
+  }
+
   .navbar-menu {
-    box-shadow: 0 8px 16px rgba(10, 10, 10, 0.1);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+    box-shadow: var(--shadow-md);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
   }
 
   .navbar-item .buttons {
     flex-direction: column;
-    align-items: stretch;
+    width: 100%;
   }
 
-  .navbar-item .buttons .button {
-    margin-bottom: 0.5rem;
+  .navbar-item .buttons .button,
+  .navbar-item .buttons .tag {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: var(--spacing-xs);
   }
 
   .tabs ul {
@@ -63,7 +441,155 @@
     justify-content: center;
   }
 
-  .navbar-item .buttons .tag {
-    margin-top: 0.5rem;
+  .box {
+    padding: var(--spacing-lg);
+  }
+
+  .card-content,
+  .card-header {
+    padding: var(--spacing-md);
+  }
+
+  .column.is-4.is-offset-4 {
+    width: 100%;
+    margin: 0;
+    padding: var(--spacing-md);
+  }
+
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+}
+
+/* iOS safe area handling for PWA */
+@supports (padding: max(0px)) {
+  body {
+    padding-top: max(0px, env(safe-area-inset-top));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+
+  .navbar {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
+
+/* =========================
+   Animations
+   ========================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card,
+.box {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* =========================
+   Additional Enhancements
+   ========================= */
+
+/* Improve button light variant for navbar */
+.button.is-light {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  backdrop-filter: blur(10px);
+}
+
+.button.is-light:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.button.is-light:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Status tag in navbar */
+.navbar-item .tag.is-light {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  backdrop-filter: blur(10px);
+}
+
+.navbar-item .tag.is-light.is-success {
+  background: rgba(72, 199, 142, 0.3);
+  border: 1px solid rgba(72, 199, 142, 0.5);
+}
+
+.navbar-item .tag.is-light.is-warning {
+  background: rgba(255, 221, 87, 0.3);
+  border: 1px solid rgba(255, 221, 87, 0.5);
+}
+
+/* Card header improvements */
+.card-header-title {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* Improve empty state notification */
+.notification.is-info p {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Better photo preview in cards */
+.card-image figure {
+  margin: 0;
+}
+
+/* Improve form focus states */
+.input:focus,
+.textarea:focus {
+  outline: none;
+}
+
+/* Better disabled state for buttons */
+.button:disabled,
+.button[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Improve checkbox styling */
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+/* Better mobile touch targets */
+@media (max-width: 768px) {
+  .button {
+    min-height: 44px;
+  }
+
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .navbar-burger {
+    color: white;
   }
 }

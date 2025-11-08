@@ -44,11 +44,15 @@ html(lang="en")
         .container.has-text-centered
           .column.is-4.is-offset-4
             .box
-              h1.title.is-2 Chompix
-              p.subtitle Welcome! Please sign in with your GitHub account to continue.
-              button.button.is-primary.is-large.is-fullwidth(@click="login")
+              h1.title.is-2 🍽️ Chompix
+              p.subtitle Track your meals with photos and notes
+              p.subtitle(style="margin-top: 8px; font-size: 0.95rem;") Sign in to get started
+              button.button.is-primary.is-large.is-fullwidth(
+                @click="login",
+                style="margin-top: 24px;"
+              )
                 span.icon
-                  | 🐙
+                  | 🔐
                 span Sign in with GitHub
 
     // Main app for authenticated users
@@ -63,27 +67,25 @@ html(lang="en")
             .navbar-end
               .navbar-item
                 .buttons
-                  button.button.is-success.is-small(
+                  button.button.is-light.is-small(
                     @click="syncWithServer",
-                    :disabled="syncStatus === 'syncing'"
+                    :disabled="syncStatus === 'syncing'",
+                    :title="syncStatus === 'idle' ? 'Sync now' : syncStatus === 'syncing' ? 'Syncing...' : 'Sync error'"
                   )
                     span.icon.is-small
                       span(x-show="syncStatus === 'idle'") 🔄
                       span(x-show="syncStatus === 'syncing'") ⏳
                       span(x-show="syncStatus === 'error'") ❌
-                    span(x-show="syncStatus === 'idle'") Sync
-                    span(x-show="syncStatus === 'syncing'") Syncing...
-                    span(x-show="syncStatus === 'error'") Error
-                  button.button.is-info.is-small(
+                  button.button.is-light.is-small(
                     @click="exportData",
-                    :disabled="entries.length === 0"
+                    :disabled="entries.length === 0",
+                    title="Export data"
                   )
                     span.icon.is-small
                       | 📦
-                    span Export
-                  .tag(:class="navigator.onLine ? 'is-success' : 'is-danger'")
-                    span(x-show="navigator.onLine") 🟢 Online
-                    span(x-show="!navigator.onLine") 🔴 Offline
+                  .tag.is-light(:class="navigator.onLine ? 'is-success' : 'is-warning'")
+                    span(x-show="navigator.onLine") 🟢
+                    span(x-show="!navigator.onLine") 🔴
               .navbar-item.has-dropdown.is-hoverable
                 a.navbar-link.has-text-white
                   figure.image.is-24x24.mr-2(x-show="userInfo?.avatar_url")
@@ -114,15 +116,34 @@ html(lang="en")
           .columns.is-centered
             .column.is-8
               .box
-                h2.title.is-4 Add New Entry
+                h2.title.is-4 📝 Add New Entry
                 .field
-                  label.label(for="note") Note:
+                  label.label(for="note") What did you eat?
                   .control
                     textarea#note.textarea(
                       x-model="note",
                       rows="4",
-                      placeholder="Enter your food notes..."
+                      placeholder="Describe your meal..."
                     )
+
+                .field
+                  label.label(for="photo") Add a Photo
+                  .file.is-boxed
+                    label.file-label
+                      input#photo.file-input(
+                        type="file",
+                        accept="image/*",
+                        @change="handlePhotoUpload($event)"
+                      )
+                      span.file-cta
+                        span.file-icon
+                          | 📷
+                        span.file-label Tap to choose photo
+
+                .field(x-show="photoPreview")
+                  .control
+                    figure.image.is-256x256
+                      img(:src="photoPreview", alt="Photo preview")
 
                 .field
                   .control
@@ -134,69 +155,51 @@ html(lang="en")
                       |
                       | Set custom date/time
 
-                  .field(x-show="useCustomDatetime")
-                    label.label(for="event-datetime") Event Date & Time:
+                  .field(x-show="useCustomDatetime", style="margin-top: 12px;")
                     .control
                       input#event-datetime.input(
                         type="datetime-local",
                         x-model="eventDatetime"
                       )
 
-                .field
-                  label.label(for="photo") Photo:
-                  .file.is-boxed
-                    label.file-label
-                      input#photo.file-input(
-                        type="file",
-                        accept="image/*",
-                        @change="handlePhotoUpload($event)"
-                      )
-                      span.file-cta
-                        span.file-icon
-                          | 📷
-                        span.file-label Choose a file...
-
-                .field(x-show="photoPreview")
-                  label.label Photo Preview:
-                  .control
-                    figure.image.is-256x256
-                      img(:src="photoPreview", alt="Photo preview")
-
-                .field
+                .field(style="margin-top: 24px;")
                   .control
                     button.button.is-success.is-large.is-fullwidth(
                       @click="saveEntry",
                       :disabled="!note && !photoBase64"
                     )
                       span.icon
-                        | 💾
+                        | ✓
                       span Save Entry
 
         .section(x-show="currentView === 'history'")
-          h2.title.is-4 Entry History
-          .columns.is-multiline
-            template(x-for="entry in entries", :key="entry.id")
-              .column.is-12
-                .card
-                  .card-header
-                    .card-header-title
-                      span.icon.mr-2
-                        | 📅
-                      span(x-text="formatTimestamp(entry.event_datetime)")
-                    .card-header-icon
-                      button.delete.is-small(@click="deleteEntry(entry.id)")
-                  .card-content(x-show="entry.text")
-                    .content
-                      p(x-text="entry.text")
-                  .card-image(x-show="entry.photo")
-                    figure.image
-                      img(:src="entry.photo", alt="Food photo")
-          .notification.is-info.has-text-centered(
-            x-show="entries.length === 0"
-          )
-            span.icon.is-large
-              | 📝
-            p.is-size-5 No entries yet. Add your first food diary entry!
+          .columns.is-centered
+            .column.is-8
+              h2.title.is-4(style="margin-bottom: 20px;") 📚 Your Food Diary
+              .columns.is-multiline
+                template(x-for="entry in entries", :key="entry.id")
+                  .column.is-12
+                    .card
+                      .card-image(x-show="entry.photo")
+                        figure.image
+                          img(:src="entry.photo", alt="Food photo")
+                      .card-content
+                        .card-header-title(style="padding: 0; margin-bottom: 12px;")
+                          span.icon.mr-2
+                            | 📅
+                          span(x-text="formatTimestamp(entry.event_datetime)")
+                          button.delete.is-small(
+                            @click="deleteEntry(entry.id)",
+                            style="margin-left: auto;"
+                          )
+                        .content(x-show="entry.text")
+                          p(x-text="entry.text")
+              .notification.is-info.has-text-centered(
+                x-show="entries.length === 0"
+              )
+                span.icon.is-large
+                  | 📝
+                p.is-size-5(style="margin-top: 12px;") No entries yet. Start tracking your meals!
 
     //- You can link to static JS files here, e.g.:
     //- script(src="/static/script.js")
