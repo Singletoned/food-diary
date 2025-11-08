@@ -6,4 +6,5 @@ httpx
 itsdangerous
 python-dotenv
 mangum
+sentry-sdk
 boto3

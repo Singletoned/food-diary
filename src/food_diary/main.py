@@ -24,18 +24,6 @@ from .s3_storage import get_storage
 # Load environment variables
 load_dotenv()
 
-# Initialize Sentry
-sentry_sdk.init(
-    dsn="https://13e8d807a8b850acce0d83675d0961eb@o4510136156160000.ingest.de.sentry.io/4510136163958865",
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-    integrations=[
-        AwsLambdaIntegration(),
-        StarletteIntegration(transaction_style="endpoint"),
-    ],
-)
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -83,6 +71,23 @@ BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 # OAuth Provider Configuration
 OAUTH_PROVIDER = os.getenv("OAUTH_PROVIDER", "github")
+
+SENTRY_DSN = secrets.get("SENTRY_DSN") or os.getenv("SENTRY_DSN")
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        # Add data like request headers and IP for users,
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        send_default_pii=True,
+        integrations=[
+            AwsLambdaIntegration(),
+            StarletteIntegration(transaction_style="endpoint"),
+        ],
+    )
+    logging.info("Sentry SDK initialized")
+else:
+    logging.info("SENTRY_DSN not provided; Sentry is disabled")
 
 # Initialize OAuth
 oauth = OAuth()
