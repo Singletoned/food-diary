@@ -70,12 +70,12 @@ html(lang="en")
                   button.button.is-light.is-small(
                     @click="syncWithServer",
                     :disabled="syncStatus === 'syncing'",
-                    :title="syncStatus === 'idle' ? 'Sync now' : syncStatus === 'syncing' ? 'Syncing...' : 'Sync error'"
+                    :title="syncStatus === 'idle' ? 'Sync with server' : syncStatus === 'syncing' ? 'Syncing...' : 'Sync error (will retry)'"
                   )
                     span.icon.is-small
                       span(x-show="syncStatus === 'idle'") 🔄
                       span(x-show="syncStatus === 'syncing'") ⏳
-                      span(x-show="syncStatus === 'error'") ❌
+                      span(x-show="syncStatus === 'error'") ⚠️
                   button.button.is-light.is-small(
                     @click="exportData",
                     :disabled="entries.length === 0",
@@ -266,7 +266,12 @@ html(lang="en")
             } catch (error) {
               console.error("Sync failed:", error);
               this.syncStatus = "error";
-              // Don't show alert for sync errors - just log them
+              // Reset error status after 3 seconds so it doesn't stay permanently
+              setTimeout(() => {
+                if (this.syncStatus === "error") {
+                  this.syncStatus = "idle";
+                }
+              }, 3000);
             }
           },
 
